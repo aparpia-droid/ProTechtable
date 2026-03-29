@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  passwordHash       String
+  firstName          String?
+  lastName           String?
+  encryptedPhone     String?
+  encryptedDob       String?
+  subscriptionTier   String   @default("free")
+  stripeCustomerId   String?
+  emailVerified      Boolean  @default(false)
+  verificationToken  String?
+  resetToken         String?
+  resetTokenExpiry   DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  assessments        Assessment[]
+  remediationActions RemediationAction[]
+}
+
+model Assessment {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailSearched    String
+  score            Int
+  riskLevel        String
+  breachesFound    Int
+  dataBrokersFound Int
+  publicProfiles   Int      @default(0)
+  assessmentData   Json
+  createdAt        DateTime @default(now())
+  remediationActions RemediationAction[]
+}
+
+model RemediationAction {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  actionType   String
+  actionTarget String
+  status       String    @default("pending")
+  isAutomated  Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+}
+
+model DataBroker {
+  id            String @id @default(uuid())
+  name          String @unique
+  removalUrl    String
+  removalMethod String
+  difficulty    String
+}

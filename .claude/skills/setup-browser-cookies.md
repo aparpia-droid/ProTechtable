@@ -1,0 +1,1 @@
+/Users/aliparpia/Desktop/ProTechtable/.gstack-repo/setup-browser-cookies/SKILL.md

@@ -1,0 +1,30 @@
+const express = require("express");
+const { PrismaClient } = require("@prisma/client");
+const { authMiddleware } = require("../middleware/auth");
+
+const prisma = new PrismaClient();
+const router = express.Router();
+
+router.use(authMiddleware);
+
+router.get("/", async (req, res, next) => {
+  try {
+    const brokers = await prisma.dataBroker.findMany({ orderBy: { name: "asc" } });
+    const isPremium = req.user.subscriptionTier === "premium";
+
+    const data = brokers.map((b, index) => ({
+      id: b.id,
+      name: b.name,
+      removalMethod: b.removalMethod,
+      difficulty: b.difficulty,
+      removalUrl: isPremium || index < 3 ? b.removalUrl : null,
+      locked: !isPremium && index >= 3,
+    }));
+
+    return res.json({ success: true, data });
+  } catch (e) {
+    next(e);
+  }
+});
+
+module.exports = router;

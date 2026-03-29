@@ -1,0 +1,1 @@
+/Users/aliparpia/Desktop/ProTechtable/.gstack-repo/plan-eng-review/SKILL.md
