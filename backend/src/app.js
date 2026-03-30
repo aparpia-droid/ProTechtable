@@ -9,6 +9,7 @@ const brokersRoutes = require("./routes/brokers");
 const paymentRoutes = require("./routes/payment");
 const paymentWebhook = require("./routes/paymentWebhook");
 const userRoutes = require("./routes/user");
+const userEmailsRoutes = require("./routes/userEmails");
 const { requestLogger } = require("./middleware/requestLogger");
 const { errorHandler } = require("./middleware/errorHandler");
 const { generalLimiter } = require("./middleware/rateLimiter");
@@ -16,6 +17,11 @@ const { csrfOriginCheck } = require("./middleware/csrfOrigin");
 
 const app = express();
 
+// IMPORTANT: This assumes exactly ONE reverse proxy in front of Express
+// (e.g., Heroku, Railway, Render, single Nginx/ALB).
+// If behind multiple proxies (CDN + ALB), change to the number of hops.
+// If exposed directly to the internet (no proxy), set to false.
+// Incorrect values break rate limiting — attackers can spoof X-Forwarded-For.
 app.set("trust proxy", 1);
 
 app.use("/api/payment/webhook", paymentWebhook);
@@ -35,7 +41,7 @@ app.use(
 );
 
 app.use(cookieParser());
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "100kb" }));
 app.use(requestLogger);
 app.use(csrfOriginCheck);
 
@@ -53,6 +59,7 @@ api.use("/remediation-actions", actionsRouter);
 api.use("/brokers", brokersRoutes);
 api.use("/payment", paymentRoutes);
 api.use("/user", userRoutes);
+api.use("/user", userEmailsRoutes);
 
 app.use("/api", api);
 

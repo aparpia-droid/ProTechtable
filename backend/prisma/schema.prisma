@@ -8,38 +8,65 @@ datasource db {
 }
 
 model User {
-  id                 String   @id @default(uuid())
-  email              String   @unique
-  passwordHash       String
-  firstName          String?
-  lastName           String?
-  encryptedPhone     String?
-  encryptedDob       String?
-  subscriptionTier   String   @default("free")
-  stripeCustomerId   String?
-  emailVerified      Boolean  @default(false)
-  verificationToken  String?
-  resetToken         String?
-  resetTokenExpiry   DateTime?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  assessments        Assessment[]
-  remediationActions RemediationAction[]
+  id                       String    @id @default(uuid())
+  email                    String    @unique
+  passwordHash             String
+  firstName                String?
+  lastName                 String?
+  encryptedPhone           String?
+  encryptedDob             String?
+  subscriptionTier         String    @default("free")
+  stripeCustomerId         String?
+  emailVerified            Boolean   @default(false)
+  verificationToken        String?
+  verificationTokenExpiry  DateTime?
+  resetToken               String?
+  resetTokenExpiry         DateTime?
+  passwordChangedAt        DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  assessments              Assessment[]
+  remediationActions       RemediationAction[]
+  extraEmails              UserEmail[]
+
+  @@index([stripeCustomerId])
+  @@index([verificationToken])
+  @@index([resetToken])
 }
 
 model Assessment {
-  id               String   @id @default(uuid())
-  userId           String
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emailSearched    String
-  score            Int
-  riskLevel        String
-  breachesFound    Int
-  dataBrokersFound Int
-  publicProfiles   Int      @default(0)
-  assessmentData   Json
-  createdAt        DateTime @default(now())
-  remediationActions RemediationAction[]
+  id                    String    @id @default(uuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailSearched         String
+  score                 Int
+  riskLevel             String
+  breachesFound         Int
+  dataBrokersFound      Int
+  publicProfiles        Int       @default(0)
+  assessmentData        Json
+  status                String    @default("completed")
+  quickWinsEmailSentAt  DateTime?
+  progressNudgeSentAt   DateTime?
+  rescanReminderSentAt  DateTime?
+  createdAt             DateTime  @default(now())
+  remediationActions    RemediationAction[]
+
+  @@index([userId])
+}
+
+model UserEmail {
+  id                  String    @id @default(uuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email               String
+  verified            Boolean   @default(false)
+  verifyCodeHash      String?
+  verifyCodeExpiresAt DateTime?
+  createdAt           DateTime  @default(now())
+
+  @@unique([userId, email])
+  @@index([userId])
 }
 
 model RemediationAction {
@@ -54,6 +81,9 @@ model RemediationAction {
   isAutomated  Boolean   @default(false)
   createdAt    DateTime  @default(now())
   completedAt  DateTime?
+
+  @@index([userId])
+  @@index([assessmentId])
 }
 
 model DataBroker {
@@ -62,4 +92,11 @@ model DataBroker {
   removalUrl    String
   removalMethod String
   difficulty    String
+}
+
+model WebhookEvent {
+  id            String   @id @default(uuid())
+  stripeEventId String   @unique
+  eventType     String
+  createdAt     DateTime @default(now())
 }

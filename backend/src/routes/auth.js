@@ -1,91 +1,91 @@
 const express = require("express");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const { validationResult } = require("express-validator");
-const { PrismaClient } = require("@prisma/client");
 const {
   signupValidators,
   loginValidators,
   forgotPasswordValidators,
   resetPasswordValidators,
   paramVerifyToken,
+  resendVerificationValidators,
 } = require("../utils/validators");
+const { validate } = require("../middleware/validate");
 const { authLimiter } = require("../middleware/rateLimiter");
-const { sendVerificationEmail, sendPasswordResetEmail } = require("../services/email");
+const {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendExistingAccountEmail,
+} = require("../services/email");
 const { logger } = require("../utils/logger");
-const { COOKIE_NAME } = require("../middleware/auth");
+const { signToken, setAuthCookie, clearAuthCookie } = require("../utils/jwt");
+const { prisma } = require("../utils/db");
+const { hashToken } = require("../utils/tokenHash");
 
-const prisma = new PrismaClient();
 const router = express.Router();
 
 const BCRYPT_ROUNDS = 12;
-const JWT_EXPIRES = "30d";
 
-function signToken(user) {
-  const secret = process.env.JWT_SECRET;
-  return jwt.sign(
-    {
-      sub: user.id,
-      email: user.email,
-      subscriptionTier: user.subscriptionTier,
-    },
-    secret,
-    { expiresIn: JWT_EXPIRES }
-  );
+function safeUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    subscriptionTier: user.subscriptionTier,
+  };
 }
 
-function setAuthCookie(res, token) {
-  const isProd = process.env.NODE_ENV === "production";
-  res.cookie(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: "strict",
-    maxAge: 30 * 24 * 60 * 60 * 1000,
-    path: "/",
-  });
-}
-
-router.post("/signup", authLimiter, signupValidators, async (req, res, next) => {
+router.post("/signup", authLimiter, signupValidators, validate, async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
-    }
     const { email, password, firstName, lastName } = req.body;
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      return res.status(409).json({ success: false, message: "Email already registered" });
+      try {
+        await sendExistingAccountEmail(email);
+      } catch (e) {
+        logger.warn("Existing account email failed", { message: e.message });
+      }
+      return res.status(201).json({
+        success: true,
+        message: "Check your email to verify your account.",
+      });
     }
+
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const rawVerificationToken = crypto.randomBytes(32).toString("hex");
+    const hashedVerificationToken = hashToken(rawVerificationToken);
+    const now = new Date();
+
     await prisma.user.create({
       data: {
         email,
         passwordHash,
         firstName: firstName || null,
         lastName: lastName || null,
-        verificationToken,
+        verificationToken: hashedVerificationToken,
+        verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
         emailVerified: false,
+        passwordChangedAt: now,
       },
     });
+
     try {
-      await sendVerificationEmail(email, verificationToken);
+      await sendVerificationEmail(email, rawVerificationToken);
     } catch (e) {
       logger.warn("Verification email failed", { message: e.message });
     }
-    return res.json({ success: true, message: "Check email to verify" });
+
+    return res.status(201).json({
+      success: true,
+      message: "Check your email to verify your account.",
+    });
   } catch (e) {
     next(e);
   }
 });
 
-router.post("/login", authLimiter, loginValidators, async (req, res, next) => {
+router.post("/login", authLimiter, loginValidators, validate, async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
-    }
     const { email, password } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
@@ -102,58 +102,60 @@ router.post("/login", authLimiter, loginValidators, async (req, res, next) => {
     setAuthCookie(res, token);
     return res.json({
       success: true,
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        subscriptionTier: user.subscriptionTier,
-      },
+      user: safeUser(user),
     });
   } catch (e) {
     next(e);
   }
 });
 
-router.get("/verify-email/:token", paramVerifyToken(), async (req, res, next) => {
+router.get("/verify-email/:token", paramVerifyToken(), validate, async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
-    }
     const { token } = req.params;
-    const user = await prisma.user.findFirst({ where: { verificationToken: token } });
+    const hashed = hashToken(token);
+    const user = await prisma.user.findFirst({
+      where: {
+        AND: [
+          { verificationToken: hashed },
+          {
+            OR: [{ verificationTokenExpiry: null }, { verificationTokenExpiry: { gt: new Date() } }],
+          },
+        ],
+      },
+    });
     if (!user) {
       return res.status(400).json({ success: false, message: "Invalid or expired token" });
     }
     await prisma.user.update({
       where: { id: user.id },
-      data: { emailVerified: true, verificationToken: null },
+      data: {
+        emailVerified: true,
+        verificationToken: null,
+        verificationTokenExpiry: null,
+      },
     });
-    return res.json({ success: true, message: "Email verified" });
+    const authToken = signToken({ id: user.id, email: user.email });
+    setAuthCookie(res, authToken);
+    return res.json({ success: true, message: "Email verified", autoLogin: true });
   } catch (e) {
     next(e);
   }
 });
 
-router.post("/forgot-password", authLimiter, forgotPasswordValidators, async (req, res, next) => {
+router.post("/forgot-password", authLimiter, forgotPasswordValidators, validate, async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
-    }
     const { email } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
     if (user) {
-      const resetToken = crypto.randomBytes(32).toString("hex");
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const hashedToken = hashToken(rawToken);
       const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
       await prisma.user.update({
         where: { id: user.id },
-        data: { resetToken, resetTokenExpiry },
+        data: { resetToken: hashedToken, resetTokenExpiry },
       });
       try {
-        await sendPasswordResetEmail(email, resetToken);
+        await sendPasswordResetEmail(email, rawToken);
       } catch (e) {
         logger.warn("Password reset email failed", { message: e.message });
       }
@@ -167,17 +169,13 @@ router.post("/forgot-password", authLimiter, forgotPasswordValidators, async (re
   }
 });
 
-router.post("/reset-password", authLimiter, resetPasswordValidators, async (req, res, next) => {
+router.post("/reset-password", authLimiter, resetPasswordValidators, validate, async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
-    }
     const { token, password } = req.body;
+    const hashed = hashToken(token);
     const user = await prisma.user.findFirst({
       where: {
-        resetToken: token,
-        resetTokenExpiry: { gt: new Date() },
+        AND: [{ resetToken: hashed }, { resetTokenExpiry: { gt: new Date() } }],
       },
     });
     if (!user) {
@@ -190,6 +188,7 @@ router.post("/reset-password", authLimiter, resetPasswordValidators, async (req,
         passwordHash,
         resetToken: null,
         resetTokenExpiry: null,
+        passwordChangedAt: new Date(),
       },
     });
     return res.json({ success: true, message: "Password reset" });
@@ -198,8 +197,42 @@ router.post("/reset-password", authLimiter, resetPasswordValidators, async (req,
   }
 });
 
+router.post(
+  "/resend-verification",
+  authLimiter,
+  resendVerificationValidators,
+  validate,
+  async (req, res, next) => {
+    const successMsg = {
+      success: true,
+      message: "If an unverified account exists, a verification email has been sent.",
+    };
+    try {
+      const user = await prisma.user.findUnique({ where: { email: req.body.email } });
+      if (!user || user.emailVerified) {
+        return res.json(successMsg);
+      }
+
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const hashedToken = hashToken(rawToken);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          verificationToken: hashedToken,
+          verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        },
+      });
+      await sendVerificationEmail(user.email, rawToken);
+      return res.json(successMsg);
+    } catch (err) {
+      logger.warn("resend_verification_error", { error: err.message });
+      return res.json(successMsg);
+    }
+  }
+);
+
 router.post("/logout", (req, res) => {
-  res.clearCookie(COOKIE_NAME, { path: "/" });
+  clearAuthCookie(res);
   return res.json({ success: true, message: "Logged out" });
 });
 

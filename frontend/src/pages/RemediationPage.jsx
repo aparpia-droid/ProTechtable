@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getBrokers, getRemediation, markActionComplete } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from "../components/LoadingSpinner";
+import RemediationWizard from "../components/RemediationWizard";
 import { useToast } from "../context/ToastContext";
 
 export default function RemediationPage() {
@@ -12,6 +13,7 @@ export default function RemediationPage() {
   const [plan, setPlan] = useState(null);
   const [brokers, setBrokers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [wizardActions, setWizardActions] = useState(null);
 
   async function refresh() {
     const [r, b] = await Promise.all([getRemediation(assessmentId), getBrokers()]);
@@ -45,6 +47,14 @@ export default function RemediationPage() {
     }
   }
 
+  const quickWins = useMemo(() => {
+    const actions = plan?.actions || [];
+    return actions
+      .filter((a) => a.status !== "completed")
+      .filter((a) => a.difficulty === "Easy" || a.priority === "High")
+      .slice(0, 3);
+  }, [plan]);
+
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
@@ -58,6 +68,13 @@ export default function RemediationPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
+      {wizardActions && (
+        <RemediationWizard
+          actions={wizardActions}
+          onComplete={() => refresh()}
+          onClose={() => setWizardActions(null)}
+        />
+      )}
       <h1 className="text-2xl font-bold text-navy">Remediation plan</h1>
       <p className="mt-1 text-brandgray">Assessment {assessmentId}</p>
 
@@ -68,6 +85,20 @@ export default function RemediationPage() {
             Premium
           </Link>
           .
+        </div>
+      )}
+
+      {quickWins.length > 0 && (
+        <div className="mt-8 rounded-lg border border-green-200 bg-green-50 p-6">
+          <h3 className="text-lg font-semibold text-green-800">Quick wins — start here</h3>
+          <p className="mt-1 text-sm text-green-700">
+            These actions are easy and have the biggest impact on your security.
+          </p>
+          <ul className="mt-4 list-inside list-disc space-y-1 text-sm text-green-900">
+            {quickWins.map((a) => (
+              <li key={a.id}>{a.title}</li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -119,6 +150,13 @@ export default function RemediationPage() {
                       Open link
                     </a>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setWizardActions([a])}
+                    className="text-sm font-semibold text-navy underline"
+                  >
+                    Walk me through it
+                  </button>
                   <label className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"

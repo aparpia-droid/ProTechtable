@@ -1,15 +1,28 @@
 const express = require("express");
-const { validationResult } = require("express-validator");
-const { PrismaClient } = require("@prisma/client");
 const { authMiddleware } = require("../middleware/auth");
 const { paramRemediationAssessmentId, markActionValidators } = require("../utils/validators");
+const { validate } = require("../middleware/validate");
+const { prisma } = require("../utils/db");
 
-const prisma = new PrismaClient();
 const planRouter = express.Router();
 const actionsRouter = express.Router();
 
 planRouter.use(authMiddleware);
 actionsRouter.use(authMiddleware);
+
+/**
+ * @param {string} actionType
+ * @returns {number}
+ */
+function getActionPriority(actionType) {
+  const priorities = {
+    credit_freeze: 1,
+    password_reset: 2,
+    fraud_alert: 3,
+    data_removal: 4,
+  };
+  return priorities[actionType] || 5;
+}
 
 /**
  * @param {string} actionType
@@ -64,27 +77,23 @@ function metaForAction(actionType, target) {
   }
 }
 
-async function ensureRemediationActions(assessment) {
-  const existing = await prisma.remediationAction.count({
-    where: { assessmentId: assessment.id },
-  });
-  if (existing > 0) return;
-
+/**
+ * @param {string} userId
+ * @param {import("@prisma/client").Assessment} assessment
+ * @returns {object[]}
+ */
+function buildRemediationRows(userId, assessment) {
   const data = assessment.assessmentData || {};
   const breachNames = Array.isArray(data.hibp?.breachNames) ? data.hibp.breachNames : [];
   const uniqueBreaches = [...new Set(breachNames)];
 
   const brokerLimit = Math.min(assessment.dataBrokersFound || 0, 20);
-  const brokers = await prisma.dataBroker.findMany({
-    orderBy: { name: "asc" },
-    take: brokerLimit > 0 ? brokerLimit : 0,
-  });
 
   const rows = [];
 
   for (const name of uniqueBreaches) {
     rows.push({
-      userId: assessment.userId,
+      userId,
       assessmentId: assessment.id,
       actionType: "password_reset",
       actionTarget: name,
@@ -94,7 +103,7 @@ async function ensureRemediationActions(assessment) {
   }
 
   rows.push({
-    userId: assessment.userId,
+    userId,
     assessmentId: assessment.id,
     actionType: "credit_freeze",
     actionTarget: "Equifax, Experian, TransUnion",
@@ -103,7 +112,7 @@ async function ensureRemediationActions(assessment) {
   });
 
   rows.push({
-    userId: assessment.userId,
+    userId,
     assessmentId: assessment.id,
     actionType: "fraud_alert",
     actionTarget: "FTC & credit bureaus",
@@ -111,28 +120,40 @@ async function ensureRemediationActions(assessment) {
     isAutomated: false,
   });
 
-  for (const b of brokers) {
-    rows.push({
-      userId: assessment.userId,
-      assessmentId: assessment.id,
-      actionType: "data_removal",
-      actionTarget: b.name,
-      status: "pending",
-      isAutomated: false,
-    });
-  }
-
-  if (rows.length) {
-    await prisma.remediationAction.createMany({ data: rows });
-  }
+  return { rows, brokerLimit };
 }
 
-planRouter.get("/:assessmentId", paramRemediationAssessmentId(), async (req, res, next) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
+async function ensureRemediationActions(userId, assessment) {
+  await prisma.$transaction(async (tx) => {
+    const count = await tx.remediationAction.count({ where: { assessmentId: assessment.id } });
+    if (count > 0) return;
+
+    const { rows, brokerLimit } = buildRemediationRows(userId, assessment);
+    const brokers = await tx.dataBroker.findMany({
+      orderBy: { name: "asc" },
+      take: brokerLimit > 0 ? brokerLimit : 0,
+    });
+
+    const allRows = [...rows];
+    for (const b of brokers) {
+      allRows.push({
+        userId,
+        assessmentId: assessment.id,
+        actionType: "data_removal",
+        actionTarget: b.name,
+        status: "pending",
+        isAutomated: false,
+      });
     }
+
+    if (allRows.length) {
+      await tx.remediationAction.createMany({ data: allRows });
+    }
+  });
+}
+
+planRouter.get("/:assessmentId", paramRemediationAssessmentId(), validate, async (req, res, next) => {
+  try {
     const { assessmentId } = req.params;
     const assessment = await prisma.assessment.findUnique({
       where: { id: assessmentId },
@@ -141,7 +162,7 @@ planRouter.get("/:assessmentId", paramRemediationAssessmentId(), async (req, res
       return res.status(404).json({ success: false, message: "Assessment not found" });
     }
 
-    await ensureRemediationActions(assessment);
+    await ensureRemediationActions(req.user.id, assessment);
 
     const actions = await prisma.remediationAction.findMany({
       where: { assessmentId },
@@ -151,7 +172,7 @@ planRouter.get("/:assessmentId", paramRemediationAssessmentId(), async (req, res
     const brokerRows = await prisma.dataBroker.findMany();
     const brokerMap = Object.fromEntries(brokerRows.map((b) => [b.name, b]));
 
-    const enriched = actions.map((a) => {
+    let enriched = actions.map((a) => {
       const m = metaForAction(a.actionType, a.actionTarget);
       const broker = a.actionType === "data_removal" ? brokerMap[a.actionTarget] : null;
       return {
@@ -170,6 +191,8 @@ planRouter.get("/:assessmentId", paramRemediationAssessmentId(), async (req, res
       };
     });
 
+    enriched.sort((a, b) => getActionPriority(a.actionType) - getActionPriority(b.actionType));
+
     const completed = actions.filter((a) => a.status === "completed").length;
     const total = actions.length;
     const percentage = total ? Math.round((completed / total) * 100) : 0;
@@ -186,12 +209,8 @@ planRouter.get("/:assessmentId", paramRemediationAssessmentId(), async (req, res
   }
 });
 
-actionsRouter.post("/mark-complete", markActionValidators, async (req, res, next) => {
+actionsRouter.post("/mark-complete", markActionValidators, validate, async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
-    }
     const { actionId } = req.body;
     const action = await prisma.remediationAction.findUnique({
       where: { id: actionId },

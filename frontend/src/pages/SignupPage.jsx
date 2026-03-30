@@ -1,6 +1,7 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { signup } from "../lib/api";
+import { resendVerification, signup } from "../lib/api";
 import { useToast } from "../context/ToastContext";
 
 const pwdRules = {
@@ -18,8 +19,10 @@ const pwdRules = {
 export default function SignupPage() {
   const { register, handleSubmit, watch, formState } = useForm();
   const { showToast } = useToast();
-  const navigate = useNavigate();
   const pw = watch("password");
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [signedUpEmail, setSignedUpEmail] = useState("");
+  const [resendBusy, setResendBusy] = useState(false);
 
   async function onSubmit(values) {
     try {
@@ -29,11 +32,51 @@ export default function SignupPage() {
         firstName: values.firstName,
         lastName: values.lastName,
       });
+      setSignedUpEmail(values.email);
+      setSignupSuccess(true);
       showToast("Check your email to verify your account.", "success");
-      navigate("/login");
     } catch (e) {
       showToast(e.response?.data?.message || "Signup failed", "error");
     }
+  }
+
+  async function handleResendVerification() {
+    if (!signedUpEmail) return;
+    setResendBusy(true);
+    try {
+      await resendVerification({ email: signedUpEmail });
+      showToast("If an unverified account exists, a verification email has been sent.", "success");
+    } catch (e) {
+      showToast(e.response?.data?.message || "Could not resend", "error");
+    } finally {
+      setResendBusy(false);
+    }
+  }
+
+  if (signupSuccess) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-12">
+        <h1 className="text-2xl font-bold text-navy">Almost there</h1>
+        <p className="mt-4 text-brandgray">
+          Account created! Check your email to verify your account, then log in.
+        </p>
+        <p className="mt-6">
+          <Link to="/login" className="font-semibold text-navy underline">
+            Log in
+          </Link>
+        </p>
+        <div className="mt-6 flex flex-col gap-2">
+          <button
+            type="button"
+            disabled={resendBusy}
+            className="rounded border border-navy/20 px-4 py-2 text-sm font-medium text-navy disabled:opacity-50"
+            onClick={handleResendVerification}
+          >
+            {resendBusy ? "Sending…" : "Resend verification email"}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

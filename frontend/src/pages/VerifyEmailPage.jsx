@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { verifyEmail } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function VerifyEmailPage() {
   const [params] = useSearchParams();
   const token = params.get("token");
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
+  const { refreshUser } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!token) {
@@ -15,15 +18,19 @@ export default function VerifyEmailPage() {
       return;
     }
     verifyEmail(token)
-      .then((res) => {
+      .then(async (res) => {
         setStatus("ok");
         setMessage(res.data.message || "Email verified");
+        if (res.data.autoLogin) {
+          await refreshUser();
+          navigate("/dashboard", { replace: true });
+        }
       })
       .catch(() => {
         setStatus("error");
         setMessage("Verification failed or link expired.");
       });
-  }, [token]);
+  }, [token, refreshUser, navigate]);
 
   return (
     <div className="mx-auto max-w-md px-4 py-12 text-center">

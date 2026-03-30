@@ -8,23 +8,10 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-function getStoredToken() {
-  return localStorage.getItem("token");
-}
-
-api.interceptors.request.use((config) => {
-  const token = getStoredToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem("token");
       if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
         window.location.href = "/login";
       }
@@ -51,6 +38,10 @@ export function forgotPassword(body) {
 
 export function resetPassword(body) {
   return api.post("/auth/reset-password", body);
+}
+
+export function resendVerification(body) {
+  return api.post("/auth/resend-verification", body);
 }
 
 export function logout() {
@@ -101,8 +92,24 @@ export function changePassword(body) {
   return api.put("/user/password", body);
 }
 
-export function deleteAccount() {
-  return api.delete("/user/account");
+export function deleteAccount(body) {
+  return api.delete("/user/account", { data: body });
 }
 
-export { api, getStoredToken };
+export function listFamilyEmails() {
+  return api.get("/user/emails");
+}
+
+export function addFamilyEmail(body) {
+  return api.post("/user/emails", body);
+}
+
+export function verifyFamilyEmail(id, body) {
+  return api.post(`/user/emails/${id}/verify`, body);
+}
+
+export function deleteFamilyEmail(id) {
+  return api.delete(`/user/emails/${id}`);
+}
+
+export { api };

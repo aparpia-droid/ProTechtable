@@ -2,7 +2,6 @@ const crypto = require("crypto");
 
 const ALGO = "aes-256-gcm";
 const IV_LENGTH = 16;
-const AUTH_TAG_LENGTH = 16;
 
 /**
  * @returns {Buffer}
@@ -50,7 +49,9 @@ function decrypt(stored) {
     const decipher = crypto.createDecipheriv(ALGO, getKey(), iv);
     decipher.setAuthTag(tag);
     return Buffer.concat([decipher.update(data), decipher.final()]).toString("utf8");
-  } catch {
+  } catch (err) {
+    const { logger } = require("../utils/logger");
+    logger.warn("decryption_failed", { error: err.message });
     return null;
   }
 }

@@ -9,11 +9,16 @@
   body {
     @apply text-navy antialiased bg-white;
   }
-  a:focus-visible,
-  button:focus-visible,
-  input:focus-visible,
-  select:focus-visible,
-  textarea:focus-visible {
-    @apply outline-2 outline-offset-2 outline-brandyellow;
-  }
+}
+
+/* Global focus indicators for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #001f3f;
+  outline-offset: 2px;
 }

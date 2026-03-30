@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { resendVerification } from "../lib/api";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -9,14 +11,36 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || "/dashboard";
-  const { register, handleSubmit, formState } = useForm();
+  const { register, handleSubmit, formState, getValues } = useForm();
+  const [resendBusy, setResendBusy] = useState(false);
 
   async function onSubmit(values) {
     try {
       await login(values.email, values.password);
       navigate(from, { replace: true });
     } catch (e) {
-      showToast(e.response?.data?.message || "Login failed", "error");
+      const msg = e.response?.data?.message || "Login failed";
+      showToast(msg, "error");
+      if (e.response?.status === 403 && msg.toLowerCase().includes("verify")) {
+        /* surface resend below */
+      }
+    }
+  }
+
+  async function handleResend() {
+    const email = getValues("email");
+    if (!email) {
+      showToast("Enter your email first", "error");
+      return;
+    }
+    setResendBusy(true);
+    try {
+      await resendVerification({ email });
+      showToast("If an unverified account exists, we sent a verification email.", "success");
+    } catch {
+      showToast("Could not resend", "error");
+    } finally {
+      setResendBusy(false);
     }
   }
 
@@ -59,6 +83,16 @@ export default function LoginPage() {
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-brandgray">
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resendBusy}
+          className="text-navy underline disabled:opacity-50"
+        >
+          Resend verification email
+        </button>
+      </p>
+      <p className="mt-2 text-center text-sm text-brandgray">
         <Link to="/forgot-password" className="text-navy">
           Forgot password?
         </Link>

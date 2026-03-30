@@ -2,12 +2,16 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import {
+  addFamilyEmail,
   changePassword,
   deleteAccount,
+  deleteFamilyEmail,
   getProfile,
   getSubscription,
   getUserAssessments,
+  listFamilyEmails,
   updateProfile,
+  verifyFamilyEmail,
 } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -32,6 +36,11 @@ export default function AccountPage() {
   const [sub, setSub] = useState(null);
   const [assessments, setAssessments] = useState([]);
   const [showDelete, setShowDelete] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [familyEmails, setFamilyEmails] = useState([]);
+  const [familyEmailInput, setFamilyEmailInput] = useState("");
+  const [verifyForId, setVerifyForId] = useState(null);
+  const [verifyCode, setVerifyCode] = useState("");
 
   async function load() {
     const [p, s, a] = await Promise.all([
@@ -42,6 +51,14 @@ export default function AccountPage() {
     setProfile(p.data.user);
     setSub(s.data.data);
     setAssessments(a.data.data || []);
+    if (s.data.data?.tier === "premium") {
+      try {
+        const fe = await listFamilyEmails();
+        setFamilyEmails(fe.data.data || []);
+      } catch {
+        setFamilyEmails([]);
+      }
+    }
     reset({
       firstName: p.data.user.firstName || "",
       lastName: p.data.user.lastName || "",
@@ -86,11 +103,11 @@ export default function AccountPage() {
 
   async function confirmDelete() {
     try {
-      await deleteAccount();
+      await deleteAccount({ password: deletePassword });
       await logout();
       window.location.href = "/";
-    } catch {
-      showToast("Could not delete account", "error");
+    } catch (e) {
+      showToast(e.response?.data?.message || "Could not delete account", "error");
     }
   }
 
@@ -183,6 +200,103 @@ export default function AccountPage() {
         </form>
       </section>
 
+      {sub?.tier === "premium" && (
+        <section className="mt-8 rounded border border-navy/10 p-6">
+          <h2 className="font-semibold text-navy">Family emails</h2>
+          <p className="mt-1 text-sm text-brandgray">
+            Add up to 5 verified emails (household) to run assessments for them. We&apos;ll send a 6-digit
+            code to each address.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <input
+              type="email"
+              placeholder="email@example.com"
+              className="min-w-[200px] flex-1 rounded border border-navy/20 px-3 py-2"
+              value={familyEmailInput}
+              onChange={(e) => setFamilyEmailInput(e.target.value)}
+            />
+            <button
+              type="button"
+              className="rounded bg-navy px-4 py-2 font-semibold text-white"
+              onClick={async () => {
+                try {
+                  await addFamilyEmail({ email: familyEmailInput });
+                  setFamilyEmailInput("");
+                  const fe = await listFamilyEmails();
+                  setFamilyEmails(fe.data.data || []);
+                  showToast("Verification code sent", "success");
+                } catch (e) {
+                  showToast(e.response?.data?.message || "Could not add email", "error");
+                }
+              }}
+            >
+              Add &amp; send code
+            </button>
+          </div>
+          <ul className="mt-4 space-y-3">
+            {familyEmails.map((row) => (
+              <li
+                key={row.id}
+                className="flex flex-wrap items-center justify-between gap-2 border-t border-navy/10 pt-3 first:border-t-0 first:pt-0"
+              >
+                <span className="text-navy">{row.email}</span>
+                {row.verified ? (
+                  <span className="text-sm text-green-700">Verified</span>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="6-digit code"
+                      className="w-28 rounded border border-navy/20 px-2 py-1 text-sm"
+                      value={verifyForId === row.id ? verifyCode : ""}
+                      onChange={(e) => {
+                        setVerifyForId(row.id);
+                        setVerifyCode(e.target.value);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="text-sm font-semibold text-navy underline"
+                      onClick={async () => {
+                        try {
+                          await verifyFamilyEmail(row.id, { code: verifyCode });
+                          setVerifyCode("");
+                          setVerifyForId(null);
+                          const fe = await listFamilyEmails();
+                          setFamilyEmails(fe.data.data || []);
+                          showToast("Email verified", "success");
+                        } catch (e) {
+                          showToast(e.response?.data?.message || "Invalid code", "error");
+                        }
+                      }}
+                    >
+                      Verify
+                    </button>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="text-sm text-red-700 underline"
+                  onClick={async () => {
+                    try {
+                      await deleteFamilyEmail(row.id);
+                      setFamilyEmails((prev) => prev.filter((x) => x.id !== row.id));
+                      showToast("Removed", "success");
+                    } catch {
+                      showToast("Could not remove", "error");
+                    }
+                  }}
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="mt-8 rounded border border-navy/10 p-6">
         <h2 className="font-semibold text-navy">Subscription</h2>
         <p className="mt-2 text-brandgray capitalize">
@@ -220,7 +334,10 @@ export default function AccountPage() {
         <button
           type="button"
           className="mt-4 rounded border border-red-700 px-4 py-2 font-semibold text-red-900"
-          onClick={() => setShowDelete(true)}
+          onClick={() => {
+            setDeletePassword("");
+            setShowDelete(true);
+          }}
         >
           Delete my account
         </button>
@@ -240,11 +357,27 @@ export default function AccountPage() {
             <p className="mt-2 text-sm text-brandgray">
               This cannot be undone. Your subscription will be canceled if active.
             </p>
+            <div className="mt-4">
+              <label htmlFor="delete-password" className="block text-sm font-medium text-navy">
+                Confirm with your password
+              </label>
+              <input
+                id="delete-password"
+                type="password"
+                autoComplete="current-password"
+                className="mt-1 w-full rounded border border-navy/20 px-3 py-2"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+              />
+            </div>
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
                 className="rounded border border-navy/20 px-4 py-2 text-navy"
-                onClick={() => setShowDelete(false)}
+                onClick={() => {
+                  setShowDelete(false);
+                  setDeletePassword("");
+                }}
               >
                 Cancel
               </button>

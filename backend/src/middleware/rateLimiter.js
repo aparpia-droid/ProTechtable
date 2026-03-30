@@ -10,10 +10,18 @@ const authLimiter = rateLimit({
 
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10,
+  max: 120,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: "Too many requests. Try again later." },
 });
 
-module.exports = { authLimiter, generalLimiter };
+const assessmentLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Assessment limit reached. Try again in an hour." },
+});
+
+module.exports = { authLimiter, generalLimiter, assessmentLimiter };

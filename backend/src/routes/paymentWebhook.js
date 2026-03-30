@@ -1,16 +1,9 @@
 const express = require("express");
-const Stripe = require("stripe");
-const { PrismaClient } = require("@prisma/client");
 const { logger } = require("../utils/logger");
+const { prisma } = require("../utils/db");
+const { getStripe } = require("../utils/stripe");
 
-const prisma = new PrismaClient();
 const router = express.Router();
-
-function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) return null;
-  return new Stripe(key);
-}
 
 /**
  * Raw body required for Stripe signature verification.
@@ -37,6 +30,13 @@ router.post(
       } catch (err) {
         logger.warn("Stripe webhook signature failed", { message: err.message });
         return res.status(400).send("Invalid signature");
+      }
+
+      const existingEvent = await prisma.webhookEvent.findUnique({
+        where: { stripeEventId: event.id },
+      });
+      if (existingEvent) {
+        return res.json({ received: true });
       }
 
       switch (event.type) {
@@ -83,6 +83,17 @@ router.post(
         }
         default:
           break;
+      }
+
+      try {
+        await prisma.webhookEvent.create({
+          data: { stripeEventId: event.id, eventType: event.type },
+        });
+      } catch (e) {
+        if (e.code === "P2002") {
+          return res.json({ received: true });
+        }
+        throw e;
       }
 
       return res.json({ received: true });

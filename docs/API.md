@@ -6,30 +6,32 @@ Unless noted, JSON request and response bodies use `Content-Type: application/js
 
 ## Authentication
 
-- **JWT**: Send `Authorization: Bearer <token>` (login also sets an httpOnly cookie `token`).
-- **Protected routes**: Require a valid JWT.
+- **Session**: HttpOnly cookie `token` (JWT). Send requests with `credentials: include` from the browser. Do not rely on client-stored JWTs.
+- **Protected routes**: Require a valid JWT in the cookie.
 
 ## Rate limits
 
-- Default API: 10 requests per minute per IP (general limiter).
-- Auth signup/login/forgot/reset: 5 requests per 15 minutes per IP.
+- Default API: 120 requests per minute per IP (general limiter).
+- Auth signup/login/forgot/reset/resend: 5 requests per 15 minutes per IP.
+- Assessment create: 5 requests per hour per IP (in addition to auth where applicable).
 
 ## Auth
 
 | Method | Path | Auth | Description |
 | ------ | ---- | ---- | ----------- |
-| POST | `/auth/signup` | No | Body: `email`, `password`, optional `firstName`, `lastName` |
-| POST | `/auth/login` | No | Body: `email`, `password` — returns `token` and `user` |
+| POST | `/auth/signup` | No | Body: `email`, `password`, optional `firstName`, `lastName`. Sets session cookie on success; duplicate email returns same generic message (201) |
+| POST | `/auth/login` | No | Body: `email`, `password` — returns `user` (no token in body) |
 | GET | `/auth/verify-email/:token` | No | Verifies email |
 | POST | `/auth/forgot-password` | No | Body: `email` |
 | POST | `/auth/reset-password` | No | Body: `token`, `password` |
+| POST | `/auth/resend-verification` | No | Body: `email` — generic success (no enumeration) |
 | POST | `/auth/logout` | No | Clears cookie |
 
 ## Assessments (protected)
 
 | Method | Path | Body | Description |
 | ------ | ---- | ---- | ----------- |
-| POST | `/assessments/create` | `{ email }` | Creates assessment; free tier: one total |
+| POST | `/assessments/create` | `{ email }` | Must match the logged-in verified email; free tier: one total |
 | GET | `/assessments/:id` | — | Full assessment for owner |
 
 ## User (protected)

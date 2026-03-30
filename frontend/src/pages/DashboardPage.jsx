@@ -6,6 +6,88 @@ import ScoreGauge from "../components/ScoreGauge";
 import RiskBadge from "../components/RiskBadge";
 import LoadingSpinner from "../components/LoadingSpinner";
 
+function ScoreChart({ assessments }) {
+  if (assessments.length < 2) return null;
+
+  const data = [...assessments].reverse().slice(-10);
+  const maxScore = 100;
+  const width = 500;
+  const height = 200;
+  const padding = 40;
+  const plotW = width - padding * 2;
+  const plotH = height - padding * 2;
+
+  const points = data.map((a, i) => ({
+    x: padding + (i / Math.max(1, data.length - 1)) * plotW,
+    y: padding + plotH - (a.score / maxScore) * plotH,
+    score: a.score,
+    date: new Date(a.createdAt).toLocaleDateString(),
+  }));
+
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const riskColor = (score) =>
+    score >= 76 ? "#EF4444" : score >= 51 ? "#F97316" : score >= 26 ? "#EAB308" : "#22C55E";
+
+  return (
+    <div className="mt-8 rounded-lg border border-navy/10 p-6">
+      <h2 className="mb-4 text-lg font-semibold text-navy">Score History</h2>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full max-w-lg"
+        role="img"
+        aria-label="Score history chart"
+      >
+        {[0, 25, 50, 75, 100].map((v) => {
+          const y = padding + plotH - (v / maxScore) * plotH;
+          return (
+            <g key={v}>
+              <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#e5e7eb" strokeWidth="1" />
+              <text x={padding - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#6B7280">
+                {v}
+              </text>
+            </g>
+          );
+        })}
+        <path
+          d={linePath}
+          fill="none"
+          stroke="#001F3F"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {points.map((p, i) => (
+          <g key={i}>
+            <circle cx={p.x} cy={p.y} r="5" fill={riskColor(p.score)} stroke="white" strokeWidth="2" />
+            <title>{`${p.date}: ${p.score}/100`}</title>
+          </g>
+        ))}
+        <text x={points[0].x} y={height - 8} textAnchor="start" fontSize="10" fill="#6B7280">
+          {points[0].date}
+        </text>
+        <text
+          x={points[points.length - 1].x}
+          y={height - 8}
+          textAnchor="end"
+          fontSize="10"
+          fill="#6B7280"
+        >
+          {points[points.length - 1].date}
+        </text>
+      </svg>
+      {data.length >= 2 && (
+        <p className="mt-3 text-sm text-brandgray">
+          {data[data.length - 1].score < data[0].score
+            ? `Your score improved by ${data[0].score - data[data.length - 1].score} points since your first scan.`
+            : data[data.length - 1].score > data[0].score
+              ? `Your exposure increased by ${data[data.length - 1].score - data[0].score} points. Check your remediation steps.`
+              : "Your score is stable."}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const [assessments, setAssessments] = useState([]);
@@ -93,6 +175,8 @@ export default function DashboardPage() {
           </Link>
         </section>
       </div>
+
+      {!loading && assessments.length >= 2 && <ScoreChart assessments={assessments} />}
 
       <section className="mt-10">
         <div className="flex items-center justify-between">

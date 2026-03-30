@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from "../context/AuthContext";
 
 vi.mock("../lib/api", () => ({
   getProfile: vi.fn(),
-  getStoredToken: vi.fn(() => null),
   login: vi.fn(),
   logout: vi.fn(),
 }));
@@ -24,10 +23,23 @@ function Probe() {
 describe("AuthContext", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    api.getStoredToken.mockReturnValue(null);
   });
 
-  it("starts unauthenticated when no token", async () => {
+  it("loads profile and sets authenticated when getProfile succeeds", async () => {
+    api.getProfile.mockResolvedValue({
+      data: { user: { id: "1", email: "a@b.com" } },
+    });
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    );
+    await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("ready"));
+    expect(screen.getByTestId("auth").textContent).toBe("yes");
+  });
+
+  it("starts unauthenticated when getProfile fails", async () => {
+    api.getProfile.mockRejectedValue(new Error("unauthorized"));
     render(
       <AuthProvider>
         <Probe />

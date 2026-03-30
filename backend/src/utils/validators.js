@@ -91,14 +91,27 @@ const profileUpdateValidators = [
   body("phone")
     .optional({ checkFalsy: true })
     .trim()
-    .isLength({ max: 32 })
-    .withMessage("Phone is too long"),
+    .matches(/^[+\d\s()\-]{7,32}$/)
+    .withMessage("Phone must contain only digits, spaces, +, -, (, ) and be 7-32 characters"),
   body("dob")
     .optional({ checkFalsy: true })
     .trim()
     .matches(/^\d{4}-\d{2}-\d{2}$/)
-    .withMessage("Invalid date of birth"),
+    .withMessage("Date of birth must be YYYY-MM-DD")
+    .custom((value) => {
+      const date = new Date(`${value}T12:00:00Z`);
+      if (Number.isNaN(date.getTime())) {
+        throw new Error("Invalid date");
+      }
+      const year = date.getUTCFullYear();
+      if (year < 1900 || year > new Date().getUTCFullYear()) {
+        throw new Error("Date out of range");
+      }
+      return true;
+    }),
 ];
+
+const resendVerificationValidators = [emailField()];
 
 const newPasswordField = () =>
   body("newPassword")
@@ -121,6 +134,29 @@ const changePasswordValidators = [
   newPasswordField(),
 ];
 
+const deleteAccountValidators = [
+  body("password").trim().notEmpty().withMessage("Password is required to delete account"),
+];
+
+const familyEmailValidators = [
+  body("email")
+    .trim()
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Invalid email format")
+    .normalizeEmail()
+    .isLength({ max: 254 })
+    .withMessage("Email is too long"),
+];
+
+const familyVerifyValidators = [
+  body("code")
+    .trim()
+    .matches(/^\d{6}$/)
+    .withMessage("Enter the 6-digit code"),
+];
+
 module.exports = {
   signupValidators,
   loginValidators,
@@ -131,10 +167,14 @@ module.exports = {
   checkoutValidators,
   profileUpdateValidators,
   changePasswordValidators,
+  deleteAccountValidators,
+  familyEmailValidators,
+  familyVerifyValidators,
   paramAssessmentId: () =>
     param("id").trim().isUUID().withMessage("Invalid assessment id"),
   paramRemediationAssessmentId: () =>
     param("assessmentId").trim().isUUID().withMessage("Invalid assessment id"),
   paramVerifyToken: () => param("token").trim().notEmpty().withMessage("Token is required"),
   paramResetToken: () => param("token").trim().notEmpty().withMessage("Token is required"),
+  resendVerificationValidators,
 };

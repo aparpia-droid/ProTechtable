@@ -1,30 +1,79 @@
 const express = require("express");
-const { validationResult } = require("express-validator");
-const { PrismaClient } = require("@prisma/client");
 const { authMiddleware } = require("../middleware/auth");
 const { assessmentEmailValidators, paramAssessmentId } = require("../utils/validators");
-const { getBreachesForEmail } = require("../services/hibp");
-const { searchEmail } = require("../services/shodan");
-const { verifyEmail } = require("../services/hunter");
-const { calculateScore, estimateDataBrokers } = require("../services/scoring");
+const { validate } = require("../middleware/validate");
+const { assessmentLimiter } = require("../middleware/rateLimiter");
+const { runAssessmentPipeline } = require("../services/assessmentRun");
+const { sendAssessmentSummaryEmail } = require("../services/email");
+const { prisma } = require("../utils/db");
+const { sanitizeAssessmentData } = require("../utils/assessmentSanitize");
+const { encrypt, decrypt } = require("../services/encryption");
+const { logger } = require("../utils/logger");
 
-const prisma = new PrismaClient();
 const router = express.Router();
 
 router.use(authMiddleware);
 
-router.post("/create", assessmentEmailValidators, async (req, res, next) => {
+let enqueueAssessment;
+try {
+  if (process.env.REDIS_URL) {
+    // eslint-disable-next-line global-require
+    enqueueAssessment = require("../jobs/assessmentWorker").enqueueAssessment;
+  }
+} catch (e) {
+  logger.warn("assessment_queue_init_failed", { message: e.message });
+}
+
+/**
+ * @param {string} stored
+ * @returns {string}
+ */
+function displayEmailSearched(stored) {
+  if (!stored) return "";
+  const d = decrypt(stored);
+  return d != null ? d : stored;
+}
+
+/**
+ * @param {import("@prisma/client").User} user
+ * @param {string} emailNorm
+ */
+async function canUseEmailForAssessment(user, emailNorm) {
+  if (emailNorm === user.email.toLowerCase()) return true;
+  const extra = await prisma.userEmail.findFirst({
+    where: {
+      userId: user.id,
+      email: emailNorm,
+      verified: true,
+    },
+  });
+  return Boolean(extra);
+}
+
+router.post("/create", assessmentLimiter, assessmentEmailValidators, validate, async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
-    }
     const { email } = req.body;
     const userId = req.user.id;
+    const emailNorm = email.toLowerCase();
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (!user.emailVerified) {
+      return res.status(403).json({
+        success: false,
+        message: "Please verify your email before running an assessment.",
+      });
+    }
+
+    const allowed = await canUseEmailForAssessment(user, emailNorm);
+    if (!allowed) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only scan your own verified email address or verified family emails.",
+      });
     }
 
     if (user.subscriptionTier !== "premium") {
@@ -40,70 +89,90 @@ router.post("/create", assessmentEmailValidators, async (req, res, next) => {
     const hibpKey = process.env.HIBP_API_KEY || "";
     const shodanKey = process.env.SHODAN_API_KEY || "";
     const hunterKey = process.env.HUNTER_IO_API_KEY || "";
+    const keys = { hibpKey, shodanKey, hunterKey };
 
-    const [hibpResult, shodanResult, hunterResult] = await Promise.all([
-      getBreachesForEmail(email, hibpKey),
-      searchEmail(email, shodanKey),
-      verifyEmail(email, hunterKey),
-    ]);
+    const encryptedStored = encrypt(email) || email;
 
-    const breachesFound = hibpResult.breachNames ? hibpResult.breachNames.length : 0;
-    const publicProfiles = shodanResult.total || 0;
-    const dataBrokersFound = estimateDataBrokers(breachesFound);
+    if (enqueueAssessment) {
+      const assessment = await prisma.assessment.create({
+        data: {
+          userId,
+          emailSearched: encryptedStored,
+          score: 0,
+          riskLevel: "pending",
+          breachesFound: 0,
+          dataBrokersFound: 0,
+          publicProfiles: 0,
+          assessmentData: {},
+          status: "processing",
+        },
+      });
+      await enqueueAssessment({
+        assessmentId: assessment.id,
+        userId,
+        email,
+        userEmail: user.email,
+      });
+      return res.json({
+        success: true,
+        data: {
+          assessmentId: assessment.id,
+          status: "processing",
+        },
+      });
+    }
 
-    const hunterForScore = hunterResult.error
-      ? null
-      : { status: hunterResult.status, score: hunterResult.score };
-
-    const scoreResult = calculateScore({
-      breachesFound,
-      publicProfiles,
-      dataBrokersFound,
-      hunterResult: hunterForScore,
-    });
-
-    const breaches = (hibpResult.breaches || []).map((b) => ({
-      name: b.name,
-      title: b.title,
-      breachDate: b.breachDate,
-      dataTypes: b.dataClasses || [],
-    }));
-
-    const assessmentData = {
-      hibp: { breachNames: hibpResult.breachNames, error: hibpResult.error },
-      hibpBreachList: breaches,
-      shodan: { total: publicProfiles, error: shodanResult.error },
-      hunter: hunterResult.error ? { error: hunterResult.error } : hunterResult.raw || hunterResult,
-    };
+    const pipeline = await runAssessmentPipeline(email, keys);
 
     const assessment = await prisma.assessment.create({
       data: {
         userId,
-        emailSearched: email,
-        score: scoreResult.totalScore,
-        riskLevel: scoreResult.riskLevel,
-        breachesFound,
-        dataBrokersFound,
-        publicProfiles,
-        assessmentData,
+        emailSearched: encryptedStored,
+        score: pipeline.scoreResult.totalScore,
+        riskLevel: pipeline.scoreResult.riskLevel,
+        breachesFound: pipeline.breachesFound,
+        dataBrokersFound: pipeline.dataBrokersFound,
+        publicProfiles: pipeline.publicProfiles,
+        assessmentData: pipeline.assessmentData,
+        status: "completed",
       },
     });
+
+    try {
+      await sendAssessmentSummaryEmail(user.email, {
+        score: pipeline.scoreResult.totalScore,
+        riskLevel: pipeline.scoreResult.riskLevel,
+        breachesFound: pipeline.breachesFound,
+        dataBrokersFound: pipeline.dataBrokersFound,
+        assessmentId: assessment.id,
+      });
+    } catch {
+      /* non-fatal */
+    }
 
     return res.json({
       success: true,
       data: {
         assessmentId: assessment.id,
-        score: scoreResult.totalScore,
-        riskLevel: scoreResult.riskLevel,
-        breachesFound,
-        dataBrokersFound,
-        publicProfiles,
-        breaches,
-        emailRisk: hunterResult.error
+        status: "completed",
+        score: pipeline.scoreResult.totalScore,
+        riskLevel: pipeline.scoreResult.riskLevel,
+        breachesFound: pipeline.breachesFound,
+        dataBrokersFound: pipeline.dataBrokersFound,
+        publicProfiles: pipeline.publicProfiles,
+        breaches: pipeline.breaches,
+        partialResults: pipeline.partialResults,
+        apiWarnings: pipeline.apiWarnings,
+        assessmentData: {
+          scoreBreakdown: pipeline.assessmentData.scoreBreakdown,
+          partialResults: pipeline.partialResults,
+          apiWarnings: pipeline.apiWarnings,
+        },
+        emailRisk: pipeline.hunterResult.error
           ? { unavailable: true }
           : {
-              status: hunterResult.status,
-              score: hunterResult.score,
+              status: pipeline.hunterResult.status,
+              score: pipeline.hunterResult.score,
             },
       },
     });
@@ -112,17 +181,26 @@ router.post("/create", assessmentEmailValidators, async (req, res, next) => {
   }
 });
 
-router.get("/:id", paramAssessmentId(), async (req, res, next) => {
+router.get("/:id", paramAssessmentId(), validate, async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
-    }
     const { id } = req.params;
     const assessment = await prisma.assessment.findUnique({ where: { id } });
     if (!assessment || assessment.userId !== req.user.id) {
       return res.status(404).json({ success: false, message: "Assessment not found" });
     }
+
+    if (assessment.status === "processing" || assessment.status === "failed") {
+      return res.json({
+        success: true,
+        data: {
+          id: assessment.id,
+          status: assessment.status,
+          emailSearched: displayEmailSearched(assessment.emailSearched),
+          createdAt: assessment.createdAt,
+        },
+      });
+    }
+
     const data = assessment.assessmentData || {};
     const breachList = Array.isArray(data.hibpBreachList) ? data.hibpBreachList : [];
     const breaches =
@@ -136,15 +214,18 @@ router.get("/:id", paramAssessmentId(), async (req, res, next) => {
       success: true,
       data: {
         id: assessment.id,
-        emailSearched: assessment.emailSearched,
+        status: assessment.status || "completed",
+        emailSearched: displayEmailSearched(assessment.emailSearched),
         score: assessment.score,
         riskLevel: assessment.riskLevel,
         breachesFound: assessment.breachesFound,
         dataBrokersFound: assessment.dataBrokersFound,
         publicProfiles: assessment.publicProfiles,
-        assessmentData: assessment.assessmentData,
+        assessmentData: sanitizeAssessmentData(data),
         createdAt: assessment.createdAt,
         breaches,
+        partialResults: Boolean(data.partialResults),
+        apiWarnings: data.apiWarnings || [],
       },
     });
   } catch (e) {

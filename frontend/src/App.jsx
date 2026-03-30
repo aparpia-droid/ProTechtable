@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Toast from "./components/Toast";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -16,7 +17,8 @@ import AssessmentPage from "./pages/AssessmentPage";
 import RemediationPage from "./pages/RemediationPage";
 import PricingPage from "./pages/PricingPage";
 import AccountPage from "./pages/AccountPage";
-import LegalPlaceholderPage from "./pages/LegalPlaceholderPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsOfServicePage from "./pages/TermsOfServicePage";
 
 function Layout({ children }) {
   return (
@@ -38,58 +40,60 @@ function Layout({ children }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ToastProvider>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-              <Route path="/verify-email" element={<VerifyEmailPage />} />
-              <Route path="/pricing" element={<PricingPage />} />
-              <Route path="/privacy" element={<LegalPlaceholderPage title="Privacy Policy" />} />
-              <Route path="/terms" element={<LegalPlaceholderPage title="Terms of Service" />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/assessment"
-                element={
-                  <ProtectedRoute>
-                    <AssessmentPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/remediation/:assessmentId"
-                element={
-                  <ProtectedRoute>
-                    <RemediationPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/account"
-                element={
-                  <ProtectedRoute>
-                    <AccountPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Layout>
-          <Toast />
-        </ToastProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <ToastProvider>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms" element={<TermsOfServicePage />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/assessment"
+                  element={
+                    <ProtectedRoute>
+                      <AssessmentPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/remediation/:assessmentId"
+                  element={
+                    <ProtectedRoute>
+                      <RemediationPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account"
+                  element={
+                    <ProtectedRoute>
+                      <AccountPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Layout>
+            <Toast />
+          </ToastProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

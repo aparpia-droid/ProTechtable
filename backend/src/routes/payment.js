@@ -1,26 +1,15 @@
 const express = require("express");
-const Stripe = require("stripe");
-const { validationResult } = require("express-validator");
-const { PrismaClient } = require("@prisma/client");
 const { authMiddleware } = require("../middleware/auth");
 const { checkoutValidators } = require("../utils/validators");
+const { validate } = require("../middleware/validate");
 const { logger } = require("../utils/logger");
+const { prisma } = require("../utils/db");
+const { getStripe } = require("../utils/stripe");
 
-const prisma = new PrismaClient();
 const router = express.Router();
 
-function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) return null;
-  return new Stripe(key);
-}
-
-router.post("/create-checkout", authMiddleware, checkoutValidators, async (req, res, next) => {
+router.post("/create-checkout", authMiddleware, checkoutValidators, validate, async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
-    }
     const stripe = getStripe();
     if (!stripe) {
       return res.status(503).json({ success: false, message: "Payments unavailable" });

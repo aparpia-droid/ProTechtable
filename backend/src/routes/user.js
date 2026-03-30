@@ -1,26 +1,21 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const Stripe = require("stripe");
-const { validationResult } = require("express-validator");
-const { PrismaClient } = require("@prisma/client");
 const { authMiddleware } = require("../middleware/auth");
+const { signToken, setAuthCookie, clearAuthCookie } = require("../utils/jwt");
 const {
   profileUpdateValidators,
   changePasswordValidators,
+  deleteAccountValidators,
 } = require("../utils/validators");
+const { validate } = require("../middleware/validate");
 const { encrypt, decrypt } = require("../services/encryption");
 const { logger } = require("../utils/logger");
+const { prisma } = require("../utils/db");
+const { getStripe } = require("../utils/stripe");
 
-const prisma = new PrismaClient();
 const router = express.Router();
 
 router.use(authMiddleware);
-
-function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) return null;
-  return new Stripe(key);
-}
 
 router.get("/profile", async (req, res, next) => {
   try {
@@ -56,12 +51,8 @@ router.get("/profile", async (req, res, next) => {
   }
 });
 
-router.put("/profile", profileUpdateValidators, async (req, res, next) => {
+router.put("/profile", profileUpdateValidators, validate, async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
-    }
     const { firstName, lastName, phone, dob } = req.body;
 
     let encryptedPhone = undefined;
@@ -111,12 +102,8 @@ router.put("/profile", profileUpdateValidators, async (req, res, next) => {
   }
 });
 
-router.put("/password", changePasswordValidators, async (req, res, next) => {
+router.put("/password", changePasswordValidators, validate, async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
-    }
     const { currentPassword, newPassword } = req.body;
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) {
@@ -129,19 +116,29 @@ router.put("/password", changePasswordValidators, async (req, res, next) => {
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash },
+      data: {
+        passwordHash,
+        passwordChangedAt: new Date(),
+      },
     });
-    return res.json({ success: true, message: "Password updated" });
+    const freshToken = signToken({ id: req.user.id, email: req.user.email });
+    setAuthCookie(res, freshToken);
+    return res.json({ success: true, message: "Password updated successfully" });
   } catch (e) {
     next(e);
   }
 });
 
-router.delete("/account", async (req, res, next) => {
+router.delete("/account", deleteAccountValidators, validate, async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const validPassword = await bcrypt.compare(req.body.password, user.passwordHash);
+    if (!validPassword) {
+      return res.status(401).json({ success: false, message: "Incorrect password" });
     }
 
     const stripe = getStripe();
@@ -159,6 +156,8 @@ router.delete("/account", async (req, res, next) => {
     }
 
     await prisma.user.delete({ where: { id: user.id } });
+
+    clearAuthCookie(res);
 
     return res.json({ success: true, message: "Account deleted" });
   } catch (e) {

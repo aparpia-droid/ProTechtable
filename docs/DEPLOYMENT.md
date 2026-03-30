@@ -41,6 +41,23 @@
 
 - In production, mutating requests should include an `Origin` (or `Referer`) matching `FRONTEND_URL` (see `csrfOrigin` middleware).
 
+## Security Configuration
+
+### Reverse Proxy (trust proxy)
+
+The backend is configured with `trust proxy = 1`, meaning it trusts one proxy hop for IP resolution. This is correct for:
+
+- Heroku
+- Railway
+- Render
+- Single Nginx or AWS ALB
+
+If your deployment has multiple proxies (e.g., Cloudflare CDN + AWS ALB), update `app.set("trust proxy", 2)` in `backend/src/app.js` to match the number of trusted hops.
+
+If the backend is exposed directly to the internet with no reverse proxy, set `trust proxy` to `false`.
+
+**Getting this wrong breaks rate limiting** — attackers can bypass IP-based limits by spoofing the X-Forwarded-For header.
+
 ## Secrets rotation
 
 - Rotate `JWT_SECRET`, `ENCRYPTION_KEY`, API keys, and Stripe secrets on a regular schedule or after any suspected leak.

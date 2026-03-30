@@ -1,6 +1,4 @@
-const { PrismaClient } = require("@prisma/client");
-
-const prisma = new PrismaClient();
+const { prisma } = require("../src/utils/db");
 
 const BROKERS = [
   ["Spokeo", "https://www.spokeo.com/optout", "form", "easy"],

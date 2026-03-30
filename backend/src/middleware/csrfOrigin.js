@@ -1,9 +1,9 @@
 /**
  * In production, require Origin (or Referer) to align with FRONTEND_URL for mutating requests.
- * Webhooks are excluded. Development and test skip this check.
+ * Webhooks are excluded. Fails closed if FRONTEND_URL is missing in production.
  */
 function csrfOriginCheck(req, res, next) {
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") {
     return next();
   }
   if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") {
@@ -15,7 +15,12 @@ function csrfOriginCheck(req, res, next) {
   }
 
   const allowed = process.env.FRONTEND_URL;
-  if (!allowed) return next();
+  if (!allowed) {
+    return res.status(403).json({
+      success: false,
+      message: "Server misconfigured: FRONTEND_URL not set",
+    });
+  }
 
   const origin = (req.get("origin") || req.get("referer") || "").split("?")[0];
   const base = allowed.replace(/\/$/, "");
