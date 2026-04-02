@@ -179,7 +179,11 @@ router.get("/assessments", async (req, res, next) => {
         createdAt: true,
       },
     });
-    return res.json({ success: true, data: list });
+    const decrypted = list.map((row) => ({
+      ...row,
+      emailSearched: (row.emailSearched && decrypt(row.emailSearched)) || row.emailSearched,
+    }));
+    return res.json({ success: true, data: decrypted });
   } catch (e) {
     next(e);
   }
