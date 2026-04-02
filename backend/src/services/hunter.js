@@ -1,7 +1,7 @@
 const https = require("https");
 const { logger } = require("../utils/logger");
 
-const TIMEOUT_MS = 10000;
+const TIMEOUT_MS = 8000;
 
 /**
  * Verify email via Hunter.io and return risk-related fields.

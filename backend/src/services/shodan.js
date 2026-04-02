@@ -1,7 +1,7 @@
 const https = require("https");
 const { logger } = require("../utils/logger");
 
-const TIMEOUT_MS = 10000;
+const TIMEOUT_MS = 8000;
 
 /**
  * Search Shodan for email exposure; returns total match count as public profile proxy.

@@ -3,7 +3,7 @@ const { searchEmail } = require("./shodan");
 const { verifyEmail } = require("./hunter");
 const { calculateScore, estimateDataBrokers } = require("./scoring");
 
-const ASSESSMENT_TIMEOUT_MS = 55000;
+const ASSESSMENT_TIMEOUT_MS = 15000;
 
 /**
  * @template T
