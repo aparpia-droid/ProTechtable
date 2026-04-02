@@ -27,6 +27,17 @@ const pwdRules = {
       : "Include upper, lower, number, and special character",
 };
 
+const inputDark =
+  "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 transition-all duration-300 focus:border-brandyellow/50 focus:outline-none focus:ring-1 focus:ring-brandyellow/25";
+
+const tabs = [
+  { id: "profile", label: "Profile" },
+  { id: "security", label: "Security" },
+  { id: "subscription", label: "Subscription" },
+  { id: "family", label: "Family emails" },
+  { id: "scans", label: "Past scans" },
+];
+
 export default function AccountPage() {
   const { logout, refreshUser } = useAuth();
   const { showToast } = useToast();
@@ -41,6 +52,7 @@ export default function AccountPage() {
   const [familyEmailInput, setFamilyEmailInput] = useState("");
   const [verifyForId, setVerifyForId] = useState(null);
   const [verifyCode, setVerifyCode] = useState("");
+  const [activeTab, setActiveTab] = useState("profile");
 
   async function load() {
     const [p, s, a] = await Promise.all([
@@ -112,260 +124,333 @@ export default function AccountPage() {
   }
 
   if (!profile) {
-    return <p className="p-8 text-center text-brandgray">Loading…</p>;
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center bg-[#0a1628] p-8 text-center text-white/60">
+        Loading…
+      </div>
+    );
   }
 
+  const newPw = pwForm.watch("newPassword") || "";
+
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-navy">Account</h1>
+    <div className="min-h-screen bg-[#0a1628] px-4 py-10">
+      <div className="mx-auto max-w-3xl">
+        <h1 className="text-3xl font-bold text-white">Account settings</h1>
+        <p className="mt-1 text-white/50">Manage your profile, security, and subscription</p>
 
-      <section className="mt-8 rounded border border-navy/10 p-6">
-        <h2 className="font-semibold text-navy">Profile</h2>
-        <form className="mt-4 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit(onSaveProfile)}>
-          <div>
-            <label htmlFor="firstName" className="text-sm font-medium text-navy">
-              First name
-            </label>
-            <input
-              id="firstName"
-              className="mt-1 w-full rounded border border-navy/20 px-3 py-2"
-              {...register("firstName")}
-            />
-          </div>
-          <div>
-            <label htmlFor="lastName" className="text-sm font-medium text-navy">
-              Last name
-            </label>
-            <input
-              id="lastName"
-              className="mt-1 w-full rounded border border-navy/20 px-3 py-2"
-              {...register("lastName")}
-            />
-          </div>
-          <div>
-            <label htmlFor="phone" className="text-sm font-medium text-navy">
-              Phone (optional)
-            </label>
-            <input
-              id="phone"
-              className="mt-1 w-full rounded border border-navy/20 px-3 py-2"
-              {...register("phone")}
-            />
-          </div>
-          <div>
-            <label htmlFor="dob" className="text-sm font-medium text-navy">
-              Date of birth (optional)
-            </label>
-            <input id="dob" type="date" className="mt-1 w-full rounded border border-navy/20 px-3 py-2" {...register("dob")} />
-          </div>
-          <div className="md:col-span-2">
-            <button type="submit" className="rounded bg-navy px-4 py-2 font-semibold text-white">
-              Save profile
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <section className="mt-8 rounded border border-navy/10 p-6">
-        <h2 className="font-semibold text-navy">Change password</h2>
-        <form
-          className="mt-4 space-y-4"
-          onSubmit={pwForm.handleSubmit(onChangePassword)}
-        >
-          <div>
-            <label htmlFor="currentPassword" className="text-sm font-medium text-navy">
-              Current password
-            </label>
-            <input
-              id="currentPassword"
-              type="password"
-              className="mt-1 w-full rounded border border-navy/20 px-3 py-2"
-              {...pwForm.register("currentPassword", { required: true })}
-            />
-          </div>
-          <div>
-            <label htmlFor="newPassword" className="text-sm font-medium text-navy">
-              New password
-            </label>
-            <input
-              id="newPassword"
-              type="password"
-              className="mt-1 w-full rounded border border-navy/20 px-3 py-2"
-              {...pwForm.register("newPassword", pwdRules)}
-            />
-          </div>
-          <button type="submit" className="rounded bg-navy px-4 py-2 font-semibold text-white">
-            Update password
-          </button>
-        </form>
-      </section>
-
-      {sub?.tier === "premium" && (
-        <section className="mt-8 rounded border border-navy/10 p-6">
-          <h2 className="font-semibold text-navy">Family emails</h2>
-          <p className="mt-1 text-sm text-brandgray">
-            Add up to 5 verified emails (household) to run assessments for them. We&apos;ll send a 6-digit
-            code to each address.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <input
-              type="email"
-              placeholder="email@example.com"
-              className="min-w-[200px] flex-1 rounded border border-navy/20 px-3 py-2"
-              value={familyEmailInput}
-              onChange={(e) => setFamilyEmailInput(e.target.value)}
-            />
+        <div className="mt-8 flex flex-wrap gap-2 rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur">
+          {tabs.map((t) => (
             <button
+              key={t.id}
               type="button"
-              className="rounded bg-navy px-4 py-2 font-semibold text-white"
-              onClick={async () => {
-                try {
-                  await addFamilyEmail({ email: familyEmailInput });
-                  setFamilyEmailInput("");
-                  const fe = await listFamilyEmails();
-                  setFamilyEmails(fe.data.data || []);
-                  showToast("Verification code sent", "success");
-                } catch (e) {
-                  showToast(e.response?.data?.message || "Could not add email", "error");
-                }
-              }}
+              onClick={() => setActiveTab(t.id)}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 ${
+                activeTab === t.id ? "bg-brandyellow text-navy" : "text-white/70 hover:text-white"
+              }`}
             >
-              Add &amp; send code
+              {t.label}
             </button>
-          </div>
-          <ul className="mt-4 space-y-3">
-            {familyEmails.map((row) => (
-              <li
-                key={row.id}
-                className="flex flex-wrap items-center justify-between gap-2 border-t border-navy/10 pt-3 first:border-t-0 first:pt-0"
-              >
-                <span className="text-navy">{row.email}</span>
-                {row.verified ? (
-                  <span className="text-sm text-green-700">Verified</span>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={6}
-                      placeholder="6-digit code"
-                      className="w-28 rounded border border-navy/20 px-2 py-1 text-sm"
-                      value={verifyForId === row.id ? verifyCode : ""}
-                      onChange={(e) => {
-                        setVerifyForId(row.id);
-                        setVerifyCode(e.target.value);
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="text-sm font-semibold text-navy underline"
-                      onClick={async () => {
-                        try {
-                          await verifyFamilyEmail(row.id, { code: verifyCode });
-                          setVerifyCode("");
-                          setVerifyForId(null);
-                          const fe = await listFamilyEmails();
-                          setFamilyEmails(fe.data.data || []);
-                          showToast("Email verified", "success");
-                        } catch (e) {
-                          showToast(e.response?.data?.message || "Invalid code", "error");
-                        }
-                      }}
-                    >
-                      Verify
-                    </button>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  className="text-sm text-red-700 underline"
-                  onClick={async () => {
-                    try {
-                      await deleteFamilyEmail(row.id);
-                      setFamilyEmails((prev) => prev.filter((x) => x.id !== row.id));
-                      showToast("Removed", "success");
-                    } catch {
-                      showToast("Could not remove", "error");
-                    }
-                  }}
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section className="mt-8 rounded border border-navy/10 p-6">
-        <h2 className="font-semibold text-navy">Subscription</h2>
-        <p className="mt-2 text-brandgray capitalize">
-          Current plan: <strong className="text-navy">{sub?.tier || "free"}</strong>
-        </p>
-        <p className="mt-2 text-sm text-brandgray">
-          Manage billing in the Stripe customer portal from your email after checkout, or upgrade from
-          pricing.
-        </p>
-        <Link to="/pricing" className="mt-4 inline-block font-semibold text-navy underline">
-          {sub?.tier === "premium" ? "View pricing" : "Upgrade to Premium"}
-        </Link>
-      </section>
-
-      <section className="mt-8 rounded border border-navy/10 p-6">
-        <h2 className="font-semibold text-navy">Past assessments</h2>
-        <ul className="mt-4 space-y-2 text-sm">
-          {assessments.map((a) => (
-            <li key={a.id}>
-              <Link to={`/assessment?resume=${a.id}`} className="text-navy underline">
-                {a.emailSearched}
-              </Link>{" "}
-              — score {a.score} ({a.riskLevel})
-            </li>
           ))}
-          {!assessments.length && <li className="text-brandgray">None yet.</li>}
-        </ul>
-      </section>
+        </div>
 
-      <section className="mt-8 rounded border border-red-200 bg-red-50 p-6">
-        <h2 className="font-semibold text-red-900">Delete account</h2>
-        <p className="mt-2 text-sm text-red-800">
-          Permanently delete your account and associated assessments (GDPR).
-        </p>
-        <button
-          type="button"
-          className="mt-4 rounded border border-red-700 px-4 py-2 font-semibold text-red-900"
-          onClick={() => {
-            setDeletePassword("");
-            setShowDelete(true);
-          }}
-        >
-          Delete my account
-        </button>
-      </section>
+        {activeTab === "profile" && (
+          <section className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur">
+            <h2 className="text-lg font-semibold text-white">Profile</h2>
+            <div className="mt-4 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
+              <p className="text-xs font-medium text-white/50">Email</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <span className="text-white">{profile.email}</span>
+                {profile.emailVerified ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-400" aria-hidden />
+                    Verified
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-yellow-500/10 px-2 py-0.5 text-xs text-yellow-400">
+                    Unverified
+                  </span>
+                )}
+              </div>
+            </div>
+            <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit(onSaveProfile)}>
+              <div>
+                <label htmlFor="firstName" className="mb-1.5 block text-sm font-medium text-white/70">
+                  First name
+                </label>
+                <input id="firstName" className={inputDark} {...register("firstName")} />
+              </div>
+              <div>
+                <label htmlFor="lastName" className="mb-1.5 block text-sm font-medium text-white/70">
+                  Last name
+                </label>
+                <input id="lastName" className={inputDark} {...register("lastName")} />
+              </div>
+              <div>
+                <label htmlFor="phone" className="mb-1.5 block text-sm font-medium text-white/70">
+                  Phone (optional)
+                </label>
+                <input id="phone" className={inputDark} {...register("phone")} />
+              </div>
+              <div>
+                <label htmlFor="dob" className="mb-1.5 block text-sm font-medium text-white/70">
+                  Date of birth (optional)
+                </label>
+                <input id="dob" type="date" className={inputDark} {...register("dob")} />
+              </div>
+              <div className="md:col-span-2">
+                <button
+                  type="submit"
+                  className="rounded-full bg-brandyellow px-8 py-3 font-semibold text-navy shadow-lg shadow-yellow-500/25 transition-all duration-300 hover:brightness-110"
+                >
+                  Save profile
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+
+        {activeTab === "security" && (
+          <section className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur">
+            <h2 className="text-lg font-semibold text-white">Change password</h2>
+            <form className="mt-6 space-y-4" onSubmit={pwForm.handleSubmit(onChangePassword)}>
+              <div>
+                <label htmlFor="currentPassword" className="mb-1.5 block text-sm font-medium text-white/70">
+                  Current password
+                </label>
+                <input
+                  id="currentPassword"
+                  type="password"
+                  className={inputDark}
+                  {...pwForm.register("currentPassword", { required: true })}
+                />
+              </div>
+              <div>
+                <label htmlFor="newPassword" className="mb-1.5 block text-sm font-medium text-white/70">
+                  New password
+                </label>
+                <input
+                  id="newPassword"
+                  type="password"
+                  className={inputDark}
+                  {...pwForm.register("newPassword", pwdRules)}
+                />
+                <p className="mt-2 text-xs text-white/40">
+                  Strength:{" "}
+                  {newPw.length >= 12 && /[a-z]/.test(newPw) && /[A-Z]/.test(newPw) && /[0-9]/.test(newPw) && /[^A-Za-z0-9]/.test(newPw)
+                    ? "Strong"
+                    : newPw.length >= 8
+                      ? "Medium"
+                      : "Enter a stronger password"}
+                </p>
+              </div>
+              <button
+                type="submit"
+                className="rounded-full bg-brandyellow px-8 py-3 font-semibold text-navy shadow-lg shadow-yellow-500/25 transition-all duration-300 hover:brightness-110"
+              >
+                Update password
+              </button>
+            </form>
+          </section>
+        )}
+
+        {activeTab === "subscription" && (
+          <section className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur">
+            <h2 className="text-lg font-semibold text-white">Subscription</h2>
+            <p className="mt-4 text-white/70">
+              Current plan:{" "}
+              <strong className="text-xl capitalize text-brandyellow">{sub?.tier || "free"}</strong>
+            </p>
+            <p className="mt-3 text-sm text-white/50">
+              Manage billing in the Stripe customer portal from your email after checkout, or upgrade from
+              pricing.
+            </p>
+            <Link
+              to="/pricing"
+              className="mt-6 inline-block rounded-full bg-navy px-8 py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-navy/90"
+            >
+              {sub?.tier === "premium" ? "View pricing" : "Upgrade to Premium"}
+            </Link>
+          </section>
+        )}
+
+        {activeTab === "family" && (
+          <section className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur">
+            <h2 className="text-lg font-semibold text-white">Family emails</h2>
+            {sub?.tier === "premium" ? (
+              <>
+                <p className="mt-2 text-sm text-white/50">
+                  Add up to 5 verified emails (household) to run assessments for them. We&apos;ll send a
+                  6-digit code to each address.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <input
+                    type="email"
+                    placeholder="email@example.com"
+                    className={`min-w-[200px] flex-1 ${inputDark}`}
+                    value={familyEmailInput}
+                    onChange={(e) => setFamilyEmailInput(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="rounded-full bg-navy px-6 py-3 font-semibold text-white transition-all duration-300 hover:bg-navy/90"
+                    onClick={async () => {
+                      try {
+                        await addFamilyEmail({ email: familyEmailInput });
+                        setFamilyEmailInput("");
+                        const fe = await listFamilyEmails();
+                        setFamilyEmails(fe.data.data || []);
+                        showToast("Verification code sent", "success");
+                      } catch (e) {
+                        showToast(e.response?.data?.message || "Could not add email", "error");
+                      }
+                    }}
+                  >
+                    Add &amp; send code
+                  </button>
+                </div>
+                <ul className="mt-6 space-y-4">
+                  {familyEmails.map((row) => (
+                    <li
+                      key={row.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"
+                    >
+                      <span className="text-white">{row.email}</span>
+                      {row.verified ? (
+                        <span className="rounded-full bg-green-500/10 px-3 py-1 text-xs text-green-400">
+                          Verified
+                        </span>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={6}
+                            placeholder="6-digit code"
+                            className={`w-28 ${inputDark}`}
+                            value={verifyForId === row.id ? verifyCode : ""}
+                            onChange={(e) => {
+                              setVerifyForId(row.id);
+                              setVerifyCode(e.target.value);
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="text-sm font-semibold text-brandyellow hover:brightness-110"
+                            onClick={async () => {
+                              try {
+                                await verifyFamilyEmail(row.id, { code: verifyCode });
+                                setVerifyCode("");
+                                setVerifyForId(null);
+                                const fe = await listFamilyEmails();
+                                setFamilyEmails(fe.data.data || []);
+                                showToast("Email verified", "success");
+                              } catch (e) {
+                                showToast(e.response?.data?.message || "Invalid code", "error");
+                              }
+                            }}
+                          >
+                            Verify
+                          </button>
+                          <span className="rounded-full bg-yellow-500/10 px-3 py-1 text-xs text-yellow-400">
+                            Pending
+                          </span>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        className="text-sm text-red-400 underline transition-colors hover:text-red-300"
+                        onClick={async () => {
+                          try {
+                            await deleteFamilyEmail(row.id);
+                            setFamilyEmails((prev) => prev.filter((x) => x.id !== row.id));
+                            showToast("Removed", "success");
+                          } catch {
+                            showToast("Could not remove", "error");
+                          }
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="mt-4 text-white/60">
+                Family email monitoring is available on{" "}
+                <Link to="/pricing" className="font-semibold text-brandyellow hover:brightness-110">
+                  Premium
+                </Link>
+                .
+              </p>
+            )}
+          </section>
+        )}
+
+        {activeTab === "scans" && (
+          <section className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur">
+            <h2 className="text-lg font-semibold text-white">Past assessments</h2>
+            <ul className="mt-4 space-y-3">
+              {assessments.map((a) => (
+                <li
+                  key={a.id}
+                  className="rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 transition-all duration-300 hover:bg-white/10"
+                >
+                  <Link to={`/assessment?resume=${a.id}`} className="font-medium text-brandyellow hover:brightness-110">
+                    {a.emailSearched}
+                  </Link>{" "}
+                  <span className="text-white/50">
+                    — score {a.score} ({a.riskLevel})
+                  </span>
+                </li>
+              ))}
+              {!assessments.length && <li className="text-white/50">None yet.</li>}
+            </ul>
+          </section>
+        )}
+
+        <section className="mt-10 rounded-2xl border border-red-500/10 bg-red-500/5 p-6">
+          <h2 className="font-semibold text-red-300">Danger zone</h2>
+          <p className="mt-2 text-sm text-red-200/80">
+            Permanently delete your account and associated assessments (GDPR).
+          </p>
+          <button
+            type="button"
+            className="mt-4 rounded-full bg-red-500 px-6 py-3 font-semibold text-white transition-all duration-300 hover:bg-red-600"
+            onClick={() => {
+              setDeletePassword("");
+              setShowDelete(true);
+            }}
+          >
+            Delete my account
+          </button>
+        </section>
+      </div>
 
       {showDelete && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="delete-title"
         >
-          <div className="max-w-md rounded-lg bg-white p-6 shadow-xl">
-            <h3 id="delete-title" className="text-lg font-semibold text-navy">
+          <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-navy/95 p-8 shadow-2xl backdrop-blur-xl">
+            <h3 id="delete-title" className="text-lg font-semibold text-white">
               Confirm deletion
             </h3>
-            <p className="mt-2 text-sm text-brandgray">
+            <p className="mt-2 text-sm text-white/60">
               This cannot be undone. Your subscription will be canceled if active.
             </p>
             <div className="mt-4">
-              <label htmlFor="delete-password" className="block text-sm font-medium text-navy">
+              <label htmlFor="delete-password" className="mb-1.5 block text-sm font-medium text-white/70">
                 Confirm with your password
               </label>
               <input
                 id="delete-password"
                 type="password"
                 autoComplete="current-password"
-                className="mt-1 w-full rounded border border-navy/20 px-3 py-2"
+                className={inputDark}
                 value={deletePassword}
                 onChange={(e) => setDeletePassword(e.target.value)}
               />
@@ -373,7 +458,7 @@ export default function AccountPage() {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
-                className="rounded border border-navy/20 px-4 py-2 text-navy"
+                className="rounded-full border border-white/20 px-5 py-2.5 text-white/80 transition-all duration-300 hover:bg-white/10"
                 onClick={() => {
                   setShowDelete(false);
                   setDeletePassword("");
@@ -383,7 +468,7 @@ export default function AccountPage() {
               </button>
               <button
                 type="button"
-                className="rounded bg-red-600 px-4 py-2 font-semibold text-white"
+                className="rounded-full bg-red-500 px-5 py-2.5 font-semibold text-white transition-all duration-300 hover:bg-red-600"
                 onClick={confirmDelete}
               >
                 Delete permanently

@@ -9,18 +9,18 @@ export default function ScoreBar({ label, score, max, color }) {
     yellow: "bg-yellow-500",
     blue: "bg-blue-500",
   };
-  const bar = colorMap[color] || "bg-navy";
+  const bar = colorMap[color] || "bg-brandyellow";
 
   return (
     <div>
       <div className="mb-1 flex justify-between text-sm">
-        <span className="text-navy">{label}</span>
-        <span className="text-brandgray">
+        <span className="text-white/90">{label}</span>
+        <span className="text-white/50">
           {score} / {max}
         </span>
       </div>
-      <div className="h-2 w-full rounded bg-navy/10">
-        <div className={`h-2 rounded ${bar}`} style={{ width: `${pct}%` }} />
+      <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/10">
+        <div className={`h-full rounded-full ${bar} transition-all duration-300`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );

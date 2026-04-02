@@ -22,7 +22,7 @@ import TermsOfServicePage from "./pages/TermsOfServicePage";
 
 function Layout({ children }) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-navy">
       <a
         href="#main-content"
         className="absolute left-[-9999px] z-50 rounded bg-brandyellow px-4 py-2 font-semibold text-navy focus:left-4 focus:top-4 focus:outline-none focus:ring-2 focus:ring-navy"
@@ -30,7 +30,7 @@ function Layout({ children }) {
         Skip to content
       </a>
       <Navbar />
-      <main id="main-content" className="flex-1" tabIndex={-1}>
+      <main id="main-content" className="flex-1 pt-[73px]" tabIndex={-1}>
         {children}
       </main>
       <Footer />

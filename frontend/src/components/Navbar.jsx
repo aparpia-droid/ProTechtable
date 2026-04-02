@@ -1,65 +1,96 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   async function handleLogout() {
     await logout();
     navigate("/");
-    setOpen(false);
+    setUserMenuOpen(false);
+    setMobileOpen(false);
   }
 
+  const linkClass = ({ isActive }) =>
+    `text-sm font-medium transition-all duration-300 ${
+      isActive ? "text-white" : "text-white/70 hover:text-white"
+    }`;
+
+  const navLinks = (
+    <>
+      <NavLink to="/dashboard" className={linkClass} onClick={() => setMobileOpen(false)}>
+        Dashboard
+      </NavLink>
+      <NavLink to="/pricing" className={linkClass} onClick={() => setMobileOpen(false)}>
+        Pricing
+      </NavLink>
+    </>
+  );
+
   return (
-    <header className="border-b border-navy/10 bg-white">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-navy/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link to="/" className="text-xl font-semibold text-navy" aria-label="ProTechtable home">
+        <Link
+          to="/"
+          className="flex items-center gap-2 text-xl font-bold text-white"
+          aria-label="ProTechtable home"
+        >
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-brandyellow/15 text-brandyellow"
+            aria-hidden
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+              />
+            </svg>
+          </span>
           ProTechtable
         </Link>
+
         <nav className="hidden items-center gap-6 md:flex" aria-label="Main">
-          <NavLink
-            to="/dashboard"
-            className={({ isActive }) =>
-              `text-sm font-medium ${isActive ? "text-navy" : "text-brandgray hover:text-navy"}`
-            }
-          >
-            Dashboard
-          </NavLink>
-          <NavLink
-            to="/pricing"
-            className={({ isActive }) =>
-              `text-sm font-medium ${isActive ? "text-navy" : "text-brandgray hover:text-navy"}`
-            }
-          >
-            Pricing
-          </NavLink>
+          {navLinks}
           {isAuthenticated ? (
-            <div className="relative">
+            <div className="relative" ref={menuRef}>
               <button
                 type="button"
-                className="flex items-center gap-1 text-sm font-medium text-navy"
-                aria-expanded={open}
+                className="flex items-center gap-1 text-sm font-medium text-white/70 transition-all duration-300 hover:text-white"
+                aria-expanded={userMenuOpen}
                 aria-haspopup="true"
                 aria-label="User menu"
-                onClick={() => setOpen(!open)}
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
               >
                 {user?.firstName || user?.email || "Account"}
                 <span aria-hidden>▾</span>
               </button>
-              {open && (
+              {userMenuOpen && (
                 <ul
-                  className="absolute right-0 z-40 mt-2 min-w-[10rem] rounded border border-navy/10 bg-white py-1 shadow"
+                  className="absolute right-0 z-40 mt-2 min-w-[12rem] rounded-xl border border-white/10 bg-navy/95 py-1 shadow-2xl backdrop-blur"
                   role="menu"
                 >
                   <li role="none">
                     <Link
                       role="menuitem"
                       to="/account"
-                      className="block px-4 py-2 text-sm hover:bg-navy/5"
-                      onClick={() => setOpen(false)}
+                      className="block px-4 py-2 text-sm text-white/90 transition-colors hover:bg-white/10"
+                      onClick={() => setUserMenuOpen(false)}
                     >
                       Account
                     </Link>
@@ -68,7 +99,7 @@ export default function Navbar() {
                     <button
                       type="button"
                       role="menuitem"
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-navy/5"
+                      className="w-full px-4 py-2 text-left text-sm text-white/90 transition-colors hover:bg-white/10"
                       onClick={handleLogout}
                     >
                       Log out
@@ -78,27 +109,83 @@ export default function Navbar() {
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-3">
-              <Link to="/login" className="text-sm font-medium text-brandgray hover:text-navy">
+            <div className="flex items-center gap-4">
+              <Link
+                to="/login"
+                className="text-sm font-medium text-white/70 transition-all duration-300 hover:text-white"
+              >
                 Log in
               </Link>
               <Link
                 to="/signup"
-                className="rounded bg-brandyellow px-4 py-2 text-sm font-semibold text-navy"
+                className="rounded-full bg-brandyellow px-5 py-2 text-sm font-semibold text-navy transition-all duration-300 hover:brightness-110"
               >
                 Sign up
               </Link>
             </div>
           )}
         </nav>
+
         <button
           type="button"
-          className="md:hidden"
-          aria-label="Open menu"
-          onClick={() => setOpen(!open)}
+          className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-lg border border-white/10 md:hidden"
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen(!mobileOpen)}
         >
-          Menu
+          <span
+            className={`block h-0.5 w-5 bg-white transition-transform ${mobileOpen ? "translate-y-2 rotate-45" : ""}`}
+          />
+          <span className={`block h-0.5 w-5 bg-white ${mobileOpen ? "opacity-0" : ""}`} />
+          <span
+            className={`block h-0.5 w-5 bg-white transition-transform ${mobileOpen ? "-translate-y-2 -rotate-45" : ""}`}
+          />
         </button>
+      </div>
+
+      <div
+        className={`overflow-hidden border-t border-white/10 bg-navy/95 backdrop-blur transition-all duration-300 md:hidden ${
+          mobileOpen ? "max-h-[28rem] opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <nav className="flex flex-col gap-1 px-4 py-4" aria-label="Mobile">
+          {navLinks}
+          {isAuthenticated ? (
+            <>
+              <Link
+                to="/account"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                onClick={() => setMobileOpen(false)}
+              >
+                Account
+              </Link>
+              <button
+                type="button"
+                className="rounded-lg px-3 py-2 text-left text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                onClick={handleLogout}
+              >
+                Log out
+              </button>
+            </>
+          ) : (
+            <div className="mt-2 flex flex-col gap-3 border-t border-white/10 pt-4">
+              <Link
+                to="/login"
+                className="rounded-lg px-3 py-2 text-center text-sm font-medium text-white/70 transition-colors hover:text-white"
+                onClick={() => setMobileOpen(false)}
+              >
+                Log in
+              </Link>
+              <Link
+                to="/signup"
+                className="rounded-full bg-brandyellow py-3 text-center text-sm font-semibold text-navy transition-all duration-300 hover:brightness-110"
+                onClick={() => setMobileOpen(false)}
+              >
+                Sign up
+              </Link>
+            </div>
+          )}
+        </nav>
       </div>
     </header>
   );

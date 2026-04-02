@@ -16,6 +16,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
+    <div className="min-h-[calc(100vh-73px)] bg-white">
     <div className="mx-auto max-w-md px-4 py-12">
       <h1 className="text-2xl font-bold text-navy">Forgot password</h1>
       {done ? (
@@ -40,6 +41,7 @@ export default function ForgotPasswordPage() {
           </button>
         </form>
       )}
+    </div>
     </div>
   );
 }

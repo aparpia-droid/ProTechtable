@@ -1,5 +1,6 @@
 export default function PrivacyPolicyPage() {
   return (
+    <div className="min-h-[calc(100vh-73px)] bg-white">
     <div className="mx-auto max-w-3xl px-4 py-12">
       <h1 className="mb-8 text-3xl font-bold text-navy">Privacy Policy</h1>
       <p className="mb-6 text-sm text-brandgray">Last updated: March 29, 2026</p>
@@ -147,6 +148,7 @@ export default function PrivacyPolicyPage() {
           </p>
         </section>
       </div>
+    </div>
     </div>
   );
 }

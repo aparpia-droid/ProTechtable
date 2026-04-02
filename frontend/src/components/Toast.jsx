@@ -1,9 +1,9 @@
 import { useToast } from "../context/ToastContext";
 
 const styles = {
-  success: "bg-green-50 text-green-900 border-green-200",
-  error: "bg-red-50 text-red-900 border-red-200",
-  info: "bg-navy/5 text-navy border-navy/10",
+  success: "bg-white/10 text-green-300 border-green-500/30 backdrop-blur-xl",
+  error: "bg-white/10 text-red-300 border-red-500/30 backdrop-blur-xl",
+  info: "bg-navy/90 text-white/90 border-white/10 backdrop-blur-xl",
 };
 
 export default function Toast() {
@@ -14,7 +14,7 @@ export default function Toast() {
     <div
       role="status"
       aria-live="polite"
-      className={`fixed bottom-4 right-4 z-50 max-w-sm rounded border px-4 py-3 shadow-lg ${cls}`}
+      className={`fixed bottom-4 right-4 z-[60] max-w-sm rounded-2xl border px-4 py-3 shadow-2xl ${cls}`}
     >
       {toast.message}
     </div>

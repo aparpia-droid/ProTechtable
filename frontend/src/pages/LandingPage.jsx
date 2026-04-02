@@ -150,7 +150,7 @@ export default function LandingPage() {
   return (
     <div className="overflow-x-hidden">
       {/* ── HERO ──────────────────────────────────────── */}
-      <section className="relative bg-navy px-4 pb-20 pt-16 md:pb-32 md:pt-24">
+      <section className="relative bg-navy px-4 pb-20 pt-8 md:pb-32 md:pt-12">
         {/* Gradient orbs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
           <div className="absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-brandyellow/10 blur-[120px]" />

@@ -5,6 +5,9 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { resendVerification } from "../lib/api";
 
+const inputDark =
+  "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 transition-all duration-300 focus:border-brandyellow/50 focus:outline-none focus:ring-1 focus:ring-brandyellow/25";
+
 export default function LoginPage() {
   const { login } = useAuth();
   const { showToast } = useToast();
@@ -45,64 +48,105 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-12">
-      <h1 className="text-2xl font-bold text-navy">Log in</h1>
-      <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-navy">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            className="mt-1 w-full rounded border border-navy/20 px-3 py-2"
-            {...register("email", { required: true })}
-          />
+    <div className="relative min-h-[calc(100vh-73px)] overflow-hidden bg-navy px-4 py-12">
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <div className="absolute left-1/4 top-20 h-72 w-72 rounded-full bg-brandyellow/20 blur-3xl" />
+        <div className="absolute bottom-20 right-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+      </div>
+
+      <div className="relative mx-auto w-full max-w-md animate-fade-in">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur">
+          <div className="mb-6 flex justify-center">
+            <span
+              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brandyellow/15 text-brandyellow"
+              aria-hidden
+            >
+              <svg className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                />
+              </svg>
+            </span>
+          </div>
+          <h1 className="text-center text-3xl font-bold text-white">Welcome back</h1>
+          <p className="mb-8 text-center text-white/60">Sign in to your account</p>
+
+          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+            <div>
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-white/70">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                className={inputDark}
+                {...register("email", { required: true })}
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-white/70">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                className={inputDark}
+                {...register("password", { required: true })}
+              />
+            </div>
+            <div className="flex items-center justify-end">
+              <Link
+                to="/forgot-password"
+                className="text-sm font-medium text-brandyellow transition-all duration-300 hover:brightness-110"
+              >
+                Forgot password?
+              </Link>
+            </div>
+            {formState.errors.root && (
+              <p className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+                {formState.errors.root.message}
+              </p>
+            )}
+            <button
+              type="submit"
+              className="w-full rounded-full bg-brandyellow py-4 text-sm font-semibold text-navy shadow-lg shadow-yellow-500/25 transition-all duration-300 hover:brightness-110"
+            >
+              Log in
+            </button>
+          </form>
+
+          <p className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resendBusy}
+              className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white/80 transition-all duration-300 hover:bg-white/10 disabled:opacity-50"
+            >
+              {resendBusy ? "Sending…" : "Resend verification email"}
+            </button>
+          </p>
+
+          <div className="relative my-6 border-t border-white/10">
+            <span className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 bg-navy/80 px-3 text-xs text-white/50">
+              or
+            </span>
+          </div>
+
+          <p className="text-center text-sm text-white/60">
+            Don&apos;t have an account?{" "}
+            <Link
+              to="/signup"
+              className="font-semibold text-brandyellow transition-all duration-300 hover:brightness-110"
+            >
+              Sign up
+            </Link>
+          </p>
         </div>
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-navy">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            className="mt-1 w-full rounded border border-navy/20 px-3 py-2"
-            {...register("password", { required: true })}
-          />
-        </div>
-        {formState.errors.root && (
-          <p className="text-sm text-red-600">{formState.errors.root.message}</p>
-        )}
-        <button
-          type="submit"
-          className="w-full rounded bg-brandyellow py-3 font-semibold text-navy"
-        >
-          Log in
-        </button>
-      </form>
-      <p className="mt-4 text-center text-sm text-brandgray">
-        <button
-          type="button"
-          onClick={handleResend}
-          disabled={resendBusy}
-          className="text-navy underline disabled:opacity-50"
-        >
-          Resend verification email
-        </button>
-      </p>
-      <p className="mt-2 text-center text-sm text-brandgray">
-        <Link to="/forgot-password" className="text-navy">
-          Forgot password?
-        </Link>
-      </p>
-      <p className="mt-2 text-center text-sm text-brandgray">
-        No account?{" "}
-        <Link to="/signup" className="font-semibold text-navy">
-          Sign up
-        </Link>
-      </p>
+      </div>
     </div>
   );
 }

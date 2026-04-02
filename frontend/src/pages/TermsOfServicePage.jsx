@@ -1,5 +1,6 @@
 export default function TermsOfServicePage() {
   return (
+    <div className="min-h-[calc(100vh-73px)] bg-white">
     <div className="mx-auto max-w-3xl px-4 py-12">
       <h1 className="mb-8 text-3xl font-bold text-navy">Terms of Service</h1>
       <p className="mb-6 text-sm text-brandgray">Last updated: March 29, 2026</p>
@@ -106,6 +107,7 @@ export default function TermsOfServicePage() {
           </p>
         </section>
       </div>
+    </div>
     </div>
   );
 }

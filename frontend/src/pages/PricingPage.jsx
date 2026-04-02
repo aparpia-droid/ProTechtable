@@ -30,6 +30,7 @@ export default function PricingPage() {
   }
 
   return (
+    <div className="min-h-[calc(100vh-73px)] bg-white">
     <div className="mx-auto max-w-5xl px-4 py-12">
       <h1 className="text-center text-3xl font-bold text-navy">Pricing</h1>
       <p className="mx-auto mt-2 max-w-2xl text-center text-brandgray">
@@ -97,6 +98,7 @@ export default function PricingPage() {
           </button>
         </section>
       </div>
+    </div>
     </div>
   );
 }

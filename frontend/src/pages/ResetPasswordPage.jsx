@@ -33,6 +33,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
+    <div className="min-h-[calc(100vh-73px)] bg-white">
     <div className="mx-auto max-w-md px-4 py-12">
       <h1 className="text-2xl font-bold text-navy">Reset password</h1>
       <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -71,6 +72,7 @@ export default function ResetPasswordPage() {
           Update password
         </button>
       </form>
+    </div>
     </div>
   );
 }

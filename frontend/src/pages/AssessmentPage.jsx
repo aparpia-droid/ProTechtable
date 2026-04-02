@@ -19,16 +19,19 @@ const STEPS = [
   { label: "Calculating vulnerability score...", ms: 1500 },
 ];
 
+const inputDark =
+  "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 transition-all duration-300 focus:border-brandyellow/50 focus:outline-none focus:ring-1 focus:ring-brandyellow/25";
+
 function getBreachSeverity(dataClasses) {
   const list = Array.isArray(dataClasses) ? dataClasses : [];
   const critical = ["Passwords", "Credit cards", "Bank account numbers", "Social security numbers"];
   const high = ["Phone numbers", "Physical addresses", "IP addresses"];
-  if (list.some((d) => critical.includes(d))) return { level: "critical", color: "text-red-700" };
-  if (list.some((d) => high.includes(d))) return { level: "high", color: "text-orange-700" };
+  if (list.some((d) => critical.includes(d))) return { level: "critical", color: "text-red-400" };
+  if (list.some((d) => high.includes(d))) return { level: "high", color: "text-orange-400" };
   if (list.some((d) => ["Email addresses", "Usernames", "Names"].includes(d))) {
-    return { level: "medium", color: "text-yellow-800" };
+    return { level: "medium", color: "text-yellow-400" };
   }
-  return { level: "low", color: "text-gray-600" };
+  return { level: "low", color: "text-white/60" };
 }
 
 function mapGetToResult(d) {
@@ -218,20 +221,27 @@ export default function AssessmentPage() {
     }
   }
 
+  function runAnotherScan() {
+    setStep(1);
+    setResult(null);
+    reset({ email: user?.email || "" });
+  }
+
   if (loadingResume) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center">
+      <div className="flex min-h-[50vh] items-center justify-center bg-[#0a1628]">
         <LoadingSpinner />
       </div>
     );
   }
 
   const breakdown = result?.assessmentData?.scoreBreakdown;
+  const progressPct = finalizing
+    ? 100
+    : Math.min(100, Math.round(((loadingStep + 1) / STEPS.length) * 100));
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-navy">Exposure assessment</h1>
-
+    <div className="min-h-screen bg-[#0a1628]">
       {showUpgrade && (
         <UpgradeModal
           onClose={() => setShowUpgrade(false)}
@@ -259,150 +269,234 @@ export default function AssessmentPage() {
       )}
 
       {step === 1 && (
-        <form className="mt-8 space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-navy">
-              Email to assess
-            </label>
-            <input
-              id="email"
-              type="email"
-              className="mt-1 w-full rounded border border-navy/20 px-3 py-2"
-              {...register("email", { required: true })}
-              aria-describedby="email-help"
-            />
-            <p id="email-help" className="mt-1 text-xs text-brandgray">
-              Only your verified account email (or verified family emails on Premium) can be scanned.
-            </p>
+        <section className="relative overflow-hidden bg-navy px-4 py-16">
+          <div className="pointer-events-none absolute inset-0" aria-hidden>
+            <div className="absolute -left-20 top-10 h-64 w-64 rounded-full bg-brandyellow/15 blur-3xl" />
+            <div className="absolute -right-20 bottom-10 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl" />
           </div>
-          <button type="submit" className="rounded bg-brandyellow px-6 py-3 font-semibold text-navy">
-            Start assessment
-          </button>
-        </form>
+          <div className="relative mx-auto max-w-lg">
+            <h1 className="text-center text-3xl font-bold text-white md:text-4xl">
+              Scan your digital footprint
+            </h1>
+            <p className="mt-3 text-center text-white/60">
+              Enter your email to discover your exposure
+            </p>
+            <form
+              className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur"
+              onSubmit={handleSubmit(onSubmit)}
+              noValidate
+            >
+              <div>
+                <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-white/70">
+                  Email to assess
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  className={inputDark}
+                  {...register("email", { required: true })}
+                  aria-describedby="email-help"
+                />
+                <p id="email-help" className="mt-2 text-sm text-white/40">
+                  Only your verified account email (or verified family emails on Premium) can be scanned.
+                </p>
+              </div>
+              <button
+                type="submit"
+                className="mt-6 w-full rounded-full bg-brandyellow py-4 text-sm font-semibold text-navy shadow-lg shadow-yellow-500/25 transition-all duration-300 hover:brightness-110"
+              >
+                Start assessment
+              </button>
+            </form>
+          </div>
+        </section>
       )}
 
       {step === 2 && (
-        <div className="mt-8" role="status" aria-live="polite">
-          <p className="text-lg font-semibold text-navy">Analyzing exposure…</p>
-          <ol className="mt-6 space-y-3">
+        <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-16" role="status" aria-live="polite">
+          <div className="mb-10 flex h-24 w-24 animate-pulse items-center justify-center rounded-full bg-brandyellow/15 text-brandyellow">
+            <svg className="h-12 w-12" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+              />
+            </svg>
+          </div>
+          <p className="text-lg font-semibold text-white">Analyzing exposure…</p>
+          <p className="mt-2 text-sm text-white/50">{progressPct}%</p>
+          <ol className="mt-10 w-full max-w-md space-y-3">
             {STEPS.map((s, i) => (
               <li
                 key={s.label}
-                className={`flex items-center gap-2 text-sm ${
+                className={`flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm backdrop-blur transition-all duration-300 ${
                   i < loadingStep
-                    ? "text-green-700"
+                    ? "text-green-400"
                     : i === loadingStep
-                      ? "font-medium text-navy"
-                      : "text-brandgray"
+                      ? "border-brandyellow/40 font-medium text-brandyellow animate-pulse"
+                      : "text-white/40"
                 }`}
               >
-                <span aria-hidden>{i < loadingStep ? "✓" : i === loadingStep ? "…" : "○"}</span>
+                <span aria-hidden className="text-lg">
+                  {i < loadingStep ? "✓" : i === loadingStep ? "…" : "○"}
+                </span>
                 {s.label}
               </li>
             ))}
           </ol>
-          {finalizing && <p className="mt-4 text-sm font-medium text-navy">Finalizing results…</p>}
+          {finalizing && (
+            <p className="mt-6 text-sm font-medium text-brandyellow">Finalizing results…</p>
+          )}
         </div>
       )}
 
       {step === 3 && result && (
-        <div className="mt-8 space-y-8">
-          {result.partialResults && (
-            <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-              <p className="font-medium text-yellow-800">Some data sources were temporarily unavailable</p>
-              <ul className="mt-1 list-inside list-disc text-sm text-yellow-700">
-                {(result.apiWarnings || []).map((w, i) => (
-                  <li key={i}>{w}</li>
-                ))}
-              </ul>
-              <p className="mt-2 text-sm text-yellow-700">
-                Your score may be lower than actual. Try again later for a complete scan.
-              </p>
+        <div className="px-4 py-12">
+          <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-navy/80 px-4 py-12 backdrop-blur">
+            <div className="pointer-events-none absolute inset-0" aria-hidden>
+              <div className="absolute right-10 top-10 h-48 w-48 rounded-full bg-brandyellow/10 blur-3xl" />
             </div>
-          )}
-
-          <div className="flex flex-col items-center gap-4 md:flex-row md:items-start">
-            <ScoreGauge score={result.score} />
-            <div>
-              <RiskBadge level={result.riskLevel} />
-              <p className="mt-2 text-sm text-brandgray">
-                Breaches: {result.breachesFound} · Brokers (est.): {result.dataBrokersFound}{" "}
-                <span className="text-xs text-brandgray">(estimated)</span> · Public profiles:{" "}
-                {result.publicProfiles}
-              </p>
-              <p className="mt-1 text-xs text-brandgray">
-                Broker exposure is estimated from breach history. Premium unlocks full broker playbooks.
-              </p>
-            </div>
-          </div>
-
-          {breakdown && (
-            <div className="mt-6 rounded-lg bg-white p-6 shadow">
-              <h3 className="mb-4 text-lg font-semibold text-navy">Score breakdown</h3>
-              <div className="space-y-3">
-                <ScoreBar label="Data breaches" score={breakdown.breachScore} max={40} color="red" />
-                <ScoreBar label="Public profiles" score={breakdown.profileScore} max={30} color="orange" />
-                <ScoreBar label="Data broker exposure" score={breakdown.brokerScore} max={20} color="yellow" />
-                <ScoreBar label="Email risk" score={breakdown.emailRiskScore} max={10} color="blue" />
+            <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-8 md:flex-row md:justify-center">
+              <ScoreGauge score={result.score} />
+              <div className="text-center md:text-left">
+                <RiskBadge level={result.riskLevel} />
+                <p className="mt-3 text-sm text-white/70">
+                  Breaches: {result.breachesFound} · Brokers (est.): {result.dataBrokersFound}{" "}
+                  <span className="text-xs text-white/50">(estimated)</span> · Public profiles:{" "}
+                  {result.publicProfiles}
+                </p>
+                <p className="mt-2 text-xs text-white/50">
+                  Broker exposure is estimated from breach history. Premium unlocks full broker playbooks.
+                </p>
               </div>
             </div>
-          )}
+          </section>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            {[
-              ["Breaches found", result.breachesFound],
-              ["Data brokers (est.)", result.dataBrokersFound],
-              ["Public profiles", result.publicProfiles],
-            ].map(([label, val]) => (
-              <div key={label} className="rounded border border-navy/10 p-4 text-center">
-                <p className="text-2xl font-bold text-navy">{val}</p>
-                <p className="text-xs text-brandgray">{label}</p>
+          <div className="mx-auto mt-10 max-w-3xl space-y-8">
+            {result.partialResults && (
+              <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/10 p-4">
+                <p className="font-medium text-yellow-200">Some data sources were temporarily unavailable</p>
+                <ul className="mt-1 list-inside list-disc text-sm text-yellow-100/90">
+                  {(result.apiWarnings || []).map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-sm text-yellow-100/80">
+                  Your score may be lower than actual. Try again later for a complete scan.
+                </p>
               </div>
-            ))}
-          </div>
-
-          {Array.isArray(result.breaches) && result.breaches.length > 0 && (
-            <div>
-              <h2 className="font-semibold text-navy">Breach details</h2>
-              <ul className="mt-2 divide-y divide-navy/10 rounded border border-navy/10">
-                {result.breaches.map((b) => {
-                  const sev = getBreachSeverity(b.dataTypes);
-                  return (
-                    <li key={b.name} className="px-3 py-2 text-sm">
-                      <span className={`font-medium ${sev.color}`}>{b.name}</span>
-                      <span className="ml-2 rounded bg-navy/5 px-2 text-xs capitalize text-navy">
-                        {sev.level}
-                      </span>
-                      {b.breachDate && <span className="text-brandgray"> — {b.breachDate}</span>}
-                      {b.dataTypes?.length ? (
-                        <p className="text-xs text-brandgray">{b.dataTypes.join(", ")}</p>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={openWizard}
-              className="rounded border border-navy px-5 py-2 font-semibold text-navy"
-            >
-              Start Guided Remediation
-            </button>
-            <Link
-              to={`/remediation/${result.assessmentId}`}
-              className="rounded bg-navy px-5 py-2 font-semibold text-white"
-            >
-              View remediation steps
-            </Link>
-            {user?.subscriptionTier !== "premium" && (
-              <Link to="/pricing" className="rounded border border-navy px-5 py-2 font-semibold text-navy">
-                Upgrade to Premium
-              </Link>
             )}
+
+            {breakdown && (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur">
+                <h3 className="mb-6 text-lg font-semibold text-white">Score breakdown</h3>
+                <div className="space-y-4">
+                  <ScoreBar label="Data breaches" score={breakdown.breachScore} max={40} color="red" />
+                  <ScoreBar label="Public profiles" score={breakdown.profileScore} max={30} color="orange" />
+                  <ScoreBar label="Data broker exposure" score={breakdown.brokerScore} max={20} color="yellow" />
+                  <ScoreBar label="Email risk" score={breakdown.emailRiskScore} max={10} color="blue" />
+                </div>
+              </div>
+            )}
+
+            {result.emailRisk != null &&
+              (typeof result.emailRisk !== "object" ||
+                (result.emailRisk && Object.keys(result.emailRisk).length > 0)) && (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+                  <h3 className="text-lg font-semibold text-white">Email risk</h3>
+                  <p className="mt-2 text-sm text-white/70">
+                    {typeof result.emailRisk === "object"
+                      ? JSON.stringify(result.emailRisk, null, 2)
+                      : String(result.emailRisk)}
+                  </p>
+                </div>
+              )}
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                ["Breaches found", result.breachesFound],
+                ["Data brokers (est.)", result.dataBrokersFound],
+                ["Public profiles", result.publicProfiles],
+              ].map(([label, val]) => (
+                <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur">
+                  <p className="text-2xl font-bold text-white">{val}</p>
+                  <p className="text-xs text-white/50">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            {Array.isArray(result.breaches) && result.breaches.length > 0 && (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+                <h2 className="text-lg font-semibold text-white">Breach details</h2>
+                <ul className="mt-4 space-y-3">
+                  {result.breaches.map((b) => {
+                    const sev = getBreachSeverity(b.dataTypes);
+                    return (
+                      <li key={b.name} className="rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 text-sm">
+                        <span className={`font-medium ${sev.color}`}>{b.name}</span>
+                        <span
+                          className={`ml-2 rounded-full px-3 py-1 text-xs capitalize ${
+                            sev.level === "critical"
+                              ? "bg-red-500/10 text-red-400"
+                              : sev.level === "high"
+                                ? "bg-orange-500/10 text-orange-400"
+                                : sev.level === "medium"
+                                  ? "bg-yellow-500/10 text-yellow-400"
+                                  : "bg-green-500/10 text-green-400"
+                          }`}
+                        >
+                          {sev.level}
+                        </span>
+                        {b.breachDate && <span className="text-white/50"> — {b.breachDate}</span>}
+                        {b.dataTypes?.length ? (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {b.dataTypes.map((dt) => (
+                              <span
+                                key={dt}
+                                className="rounded-full bg-red-500/10 px-3 py-1 text-xs text-red-400"
+                              >
+                                {dt}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-4">
+              <Link
+                to={`/remediation/${result.assessmentId}`}
+                className="rounded-full bg-brandyellow px-8 py-3 text-sm font-semibold text-navy shadow-lg shadow-yellow-500/25 transition-all duration-300 hover:brightness-110"
+              >
+                View remediation steps
+              </Link>
+              <button
+                type="button"
+                onClick={runAnotherScan}
+                className="rounded-full border border-white/20 px-8 py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-white/10"
+              >
+                Run another scan
+              </button>
+              <button
+                type="button"
+                onClick={openWizard}
+                className="rounded-full border border-white/20 px-8 py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-white/10"
+              >
+                Start guided remediation
+              </button>
+              {user?.subscriptionTier !== "premium" && (
+                <Link
+                  to="/pricing"
+                  className="rounded-full border border-brandyellow/50 px-8 py-3 text-sm font-semibold text-brandyellow transition-all duration-300 hover:bg-brandyellow/10"
+                >
+                  Upgrade to Premium
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       )}
