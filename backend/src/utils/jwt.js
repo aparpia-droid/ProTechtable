@@ -17,17 +17,18 @@ function setAuthCookie(res, token) {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     secure: isProd,
-    sameSite: "strict",
+    sameSite: isProd ? "none" : "strict",
     maxAge: COOKIE_MAX_MS,
     path: "/",
   });
 }
 
 function clearAuthCookie(res) {
+  const isProd = process.env.NODE_ENV === "production";
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: isProd,
+    sameSite: isProd ? "none" : "strict",
     path: "/",
   });
 }
