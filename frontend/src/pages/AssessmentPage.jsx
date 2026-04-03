@@ -50,6 +50,27 @@ function mapGetToResult(d) {
   };
 }
 
+async function pollForCompletion(assessmentId, isCancelled, showToast) {
+  for (let i = 0; i < 90; i++) {
+    if (isCancelled()) return null;
+    await new Promise((r) => setTimeout(r, 2000));
+    try {
+      const { data } = await getAssessment(assessmentId);
+      const row = data?.data;
+      if (!row) continue;
+      if (row.status === "completed") return mapGetToResult(row);
+      if (row.status === "failed") {
+        showToast("Assessment failed. Please try again.", "error");
+        return null;
+      }
+    } catch {
+      continue;
+    }
+  }
+  showToast("Timed out waiting for results.", "error");
+  return null;
+}
+
 export default function AssessmentPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -86,23 +107,11 @@ export default function AssessmentPage() {
         if (!cancelled && data?.data) {
           const d = data.data;
           if (d.status === "processing") {
-            for (let i = 0; i < 90; i++) {
-              if (isCancelled()) return;
-              await new Promise((r) => setTimeout(r, 2000));
-              const res = await getAssessment(d.id);
-              const row = res.data?.data;
-              if (!row) continue;
-              if (row.status === "completed") {
-                setResult(mapGetToResult(row));
-                setStep(3);
-                return;
-              }
-              if (row.status === "failed") {
-                showToast("Assessment failed. Please try again.", "error");
-                return;
-              }
+            const mapped = await pollForCompletion(d.id, isCancelled, showToast);
+            if (mapped && !isCancelled()) {
+              setResult(mapped);
+              setStep(3);
             }
-            if (!isCancelled()) showToast("Timed out waiting for results.", "error");
             return;
           }
           setResult(mapGetToResult(d));
@@ -154,29 +163,16 @@ export default function AssessmentPage() {
 
       if (payload.status === "processing" && payload.assessmentId) {
         setFinalizing(false);
-        for (let i = 0; i < 90; i++) {
-          await new Promise((r) => setTimeout(r, 2000));
-          const { data } = await getAssessment(payload.assessmentId);
-          const row = data?.data;
-          if (!row) continue;
-          if (row.status === "completed") {
-            const mapped = mapGetToResult(row);
-            setResult(mapped);
-            setFinalizing(false);
-            setStep(3);
-            await maybeShowCelebration(mapped.score);
-            return;
-          }
-          if (row.status === "failed") {
-            showToast("Assessment failed. Please try again.", "error");
-            setStep(1);
-            setFinalizing(false);
-            return;
-          }
+        const mapped = await pollForCompletion(payload.assessmentId, () => false, showToast);
+        if (mapped) {
+          setResult(mapped);
+          setFinalizing(false);
+          setStep(3);
+          await maybeShowCelebration(mapped.score);
+        } else {
+          setStep(1);
+          setFinalizing(false);
         }
-        showToast("Timed out waiting for results.", "error");
-        setStep(1);
-        setFinalizing(false);
         return;
       }
 

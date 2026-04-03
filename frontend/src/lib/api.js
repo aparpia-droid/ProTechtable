@@ -5,15 +5,24 @@ const baseURL = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api`
 const api = axios.create({
   baseURL,
   withCredentials: true,
+  timeout: 30000,
   headers: { "Content-Type": "application/json" },
 });
+
+let isRedirecting = false;
 
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
-      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-        window.location.href = "/login";
+    if (err.response?.status === 401 && !isRedirecting) {
+      const path = typeof window !== "undefined" ? window.location.pathname : "";
+      const publicPaths = ["/login", "/signup", "/verify-email", "/forgot-password", "/reset-password", "/"];
+      if (!publicPaths.includes(path)) {
+        isRedirecting = true;
+        setTimeout(() => {
+          window.location.href = "/login";
+          setTimeout(() => { isRedirecting = false; }, 2000);
+        }, 100);
       }
     }
     return Promise.reject(err);

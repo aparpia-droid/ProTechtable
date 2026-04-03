@@ -76,16 +76,15 @@ router.post("/create", assessmentLimiter, assessmentEmailValidators, validate, a
       });
     }
 
-    // TODO: re-enable free tier limit before launch
-    // if (user.subscriptionTier !== "premium") {
-    //   const count = await prisma.assessment.count({ where: { userId } });
-    //   if (count >= 1) {
-    //     return res.status(403).json({
-    //       success: false,
-    //       message: "Free tier allows one assessment. Upgrade to Premium for unlimited scans.",
-    //     });
-    //   }
-    // }
+    if (user.subscriptionTier !== "premium") {
+      const count = await prisma.assessment.count({ where: { userId } });
+      if (count >= 3) {
+        return res.status(403).json({
+          success: false,
+          message: "Free tier allows 3 assessments. Upgrade to Premium for unlimited scans.",
+        });
+      }
+    }
 
     const hibpKey = process.env.HIBP_API_KEY || "";
     const shodanKey = process.env.SHODAN_API_KEY || "";

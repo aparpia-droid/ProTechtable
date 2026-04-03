@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
+import { useAuth } from "../context/AuthContext";
 
 /* ── Animated counter ─────────────────────────────────── */
 function AnimatedNumber({ target, suffix = "", duration = 2000 }) {
@@ -145,6 +146,8 @@ const testimonials = [
 
 /* ── Main Component ───────────────────────────────────── */
 export default function LandingPage() {
+  const { isAuthenticated } = useAuth();
+  const ctaLink = isAuthenticated ? "/assessment" : "/signup";
   const [openFaq, setOpenFaq] = useState(-1);
 
   return (
@@ -174,7 +177,7 @@ export default function LandingPage() {
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <Link
-                  to="/signup"
+                  to={ctaLink}
                   className="rounded-lg bg-brandyellow px-7 py-3.5 text-sm font-bold text-navy shadow-lg shadow-brandyellow/20 transition hover:brightness-110 focus-visible:ring-2 focus-visible:ring-brandyellow focus-visible:ring-offset-2 focus-visible:ring-offset-navy"
                 >
                   Get started free
@@ -374,7 +377,7 @@ export default function LandingPage() {
                 )}
               </ul>
               <Link
-                to="/signup"
+                to={ctaLink}
                 className="mt-8 block rounded-lg border border-navy/20 py-3 text-center text-sm font-bold text-navy transition hover:bg-navy/5"
               >
                 Get started
@@ -511,7 +514,7 @@ export default function LandingPage() {
             Join thousands of users who have taken control of their digital security.
           </p>
           <Link
-            to="/signup"
+            to={ctaLink}
             className="mt-8 inline-block rounded-lg bg-brandyellow px-10 py-4 text-sm font-bold text-navy shadow-lg shadow-brandyellow/20 transition hover:brightness-110 focus-visible:ring-2 focus-visible:ring-brandyellow"
           >
             Get started free — takes 30 seconds

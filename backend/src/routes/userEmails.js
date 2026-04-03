@@ -7,6 +7,7 @@ const { validate } = require("../middleware/validate");
 const { prisma } = require("../utils/db");
 const { sendFamilyVerificationCode } = require("../services/email");
 const { logger } = require("../utils/logger");
+const { verifyCodeLimiter } = require("../middleware/rateLimiter");
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -102,7 +103,7 @@ router.post("/emails", familyEmailValidators, validate, async (req, res, next) =
   }
 });
 
-router.post("/emails/:id/verify", familyVerifyValidators, validate, async (req, res, next) => {
+router.post("/emails/:id/verify", verifyCodeLimiter, familyVerifyValidators, validate, async (req, res, next) => {
   try {
     const { id } = req.params;
     const row = await prisma.userEmail.findFirst({

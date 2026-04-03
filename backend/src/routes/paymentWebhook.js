@@ -32,13 +32,20 @@ router.post(
         return res.status(400).send("Invalid signature");
       }
 
-      const existingEvent = await prisma.webhookEvent.findUnique({
-        where: { stripeEventId: event.id },
-      });
-      if (existingEvent) {
-        return res.json({ received: true });
+      // Idempotency: claim this event FIRST via unique constraint
+      try {
+        await prisma.webhookEvent.create({
+          data: { stripeEventId: event.id, eventType: event.type },
+        });
+      } catch (e) {
+        if (e.code === "P2002") {
+          // Duplicate — already processed, safe to skip
+          return res.json({ received: true });
+        }
+        throw e;
       }
 
+      // Event is claimed — now process it (guaranteed single execution)
       switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object;
@@ -83,17 +90,6 @@ router.post(
         }
         default:
           break;
-      }
-
-      try {
-        await prisma.webhookEvent.create({
-          data: { stripeEventId: event.id, eventType: event.type },
-        });
-      } catch (e) {
-        if (e.code === "P2002") {
-          return res.json({ received: true });
-        }
-        throw e;
       }
 
       return res.json({ received: true });
