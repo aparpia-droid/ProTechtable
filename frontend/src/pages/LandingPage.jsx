@@ -463,6 +463,54 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Built for Students ────────────────────────── */}
+      <section className="bg-navy px-4 py-20">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-center text-sm font-semibold uppercase tracking-widest text-brandyellow">
+            Built for Students
+          </p>
+          <h2 className="mt-3 text-center text-3xl font-bold text-white md:text-4xl">
+            Privacy protection that fits a student budget
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-white/70">
+            Get 50% off Premium when you sign up with a <span className="font-mono text-brandyellow">.edu</span>{" "}
+            email. Same features—lower price.
+          </p>
+          <div className="mt-14 grid gap-6 md:grid-cols-3">
+            {[
+              {
+                title: "Campus Wi‑Fi & leaks",
+                body: "See if your school email appeared in breaches and lock down accounts before midterms.",
+              },
+              {
+                title: "Job search safety",
+                body: "Reduce broker exposure before recruiters Google you—without expensive identity suites.",
+              },
+              {
+                title: "Shared housing",
+                body: "Clear personal data from lists that roommates or subletters might stumble on.",
+              },
+            ].map((card) => (
+              <div
+                key={card.title}
+                className="rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur transition hover:border-brandyellow/30"
+              >
+                <h3 className="text-lg font-bold text-white">{card.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-white/65">{card.body}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-12 flex justify-center">
+            <Link
+              to="/signup"
+              className="inline-flex rounded-full bg-brandyellow px-8 py-4 text-sm font-bold text-navy shadow-lg shadow-brandyellow/25 transition hover:brightness-110"
+            >
+              Get Student Pricing
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── FAQ ───────────────────────────────────────── */}
       <section className="px-4 py-20">
         <div className="mx-auto max-w-3xl">

@@ -10,6 +10,8 @@ const paymentRoutes = require("./routes/payment");
 const paymentWebhook = require("./routes/paymentWebhook");
 const userRoutes = require("./routes/user");
 const userEmailsRoutes = require("./routes/userEmails");
+const brokerRemovalsRoutes = require("./routes/brokerRemovals");
+const alertsRoutes = require("./routes/alerts");
 const { requestLogger } = require("./middleware/requestLogger");
 const { errorHandler } = require("./middleware/errorHandler");
 const { generalLimiter } = require("./middleware/rateLimiter");
@@ -58,6 +60,8 @@ api.use("/remediation", planRouter);
 api.use("/remediation-actions", actionsRouter);
 api.use("/brokers", brokersRoutes);
 api.use("/payment", paymentRoutes);
+api.use("/broker-removals", brokerRemovalsRoutes);
+api.use("/alerts", alertsRoutes);
 api.use("/user", userRoutes);
 api.use("/user", userEmailsRoutes);
 

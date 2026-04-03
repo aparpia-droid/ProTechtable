@@ -75,6 +75,7 @@ const checkoutValidators = [
     .trim()
     .isIn(["monthly", "annual"])
     .withMessage("Plan must be monthly or annual"),
+  body("student").optional().isBoolean().withMessage("student must be a boolean"),
 ];
 
 const profileUpdateValidators = [

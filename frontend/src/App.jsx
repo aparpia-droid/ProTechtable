@@ -15,6 +15,8 @@ import VerifyEmailPage from "./pages/VerifyEmailPage";
 import DashboardPage from "./pages/DashboardPage";
 import AssessmentPage from "./pages/AssessmentPage";
 import RemediationPage from "./pages/RemediationPage";
+import BrokerRemovalPage from "./pages/BrokerRemovalPage";
+import AlertsPage from "./pages/AlertsPage";
 import PricingPage from "./pages/PricingPage";
 import AccountPage from "./pages/AccountPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
@@ -76,6 +78,22 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <RemediationPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/broker-removal"
+                  element={
+                    <ProtectedRoute>
+                      <BrokerRemovalPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/alerts"
+                  element={
+                    <ProtectedRoute>
+                      <AlertsPage />
                     </ProtectedRoute>
                   }
                 />

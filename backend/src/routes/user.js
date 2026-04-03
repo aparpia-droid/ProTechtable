@@ -30,6 +30,8 @@ router.get("/profile", async (req, res, next) => {
         encryptedDob: true,
         subscriptionTier: true,
         emailVerified: true,
+        monitoringEnabled: true,
+        isStudent: true,
         createdAt: true,
       },
     });
@@ -233,6 +235,42 @@ router.get("/subscription", async (req, res, next) => {
           : null,
         cancelAtPeriodEnd: sub?.cancel_at_period_end || false,
       },
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// POST /api/user/monitoring — toggle continuous monitoring
+router.post("/monitoring", async (req, res, next) => {
+  try {
+    const enabled = Boolean(req.body.enabled);
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (!user.emailVerified) {
+      return res.status(403).json({ success: false, message: "Verify your email first" });
+    }
+
+    if (enabled && user.subscriptionTier !== "premium") {
+      return res.status(403).json({
+        success: false,
+        message: "Continuous monitoring is a Premium feature.",
+      });
+    }
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { monitoringEnabled: enabled },
+    });
+
+    return res.json({
+      success: true,
+      message: enabled
+        ? "Monitoring enabled. We'll alert you when new breaches are detected."
+        : "Monitoring disabled.",
     });
   } catch (e) {
     next(e);

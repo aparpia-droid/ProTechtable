@@ -16,16 +16,33 @@ router.post("/create-checkout", authMiddleware, checkoutValidators, validate, as
     }
 
     const { plan } = req.body;
-    const priceId =
-      plan === "annual" ? process.env.STRIPE_ANNUAL_PRICE_ID : process.env.STRIPE_MONTHLY_PRICE_ID;
-    if (!priceId) {
-      logger.error("Stripe price IDs not configured");
-      return res.status(503).json({ success: false, message: "Payments unavailable" });
-    }
+    const wantStudent = req.body.student === true;
 
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (wantStudent && !user.isStudent) {
+      return res.status(403).json({
+        success: false,
+        message: "Student pricing is only available for accounts registered with a .edu email.",
+      });
+    }
+
+    let priceId;
+    if (wantStudent) {
+      priceId =
+        plan === "annual"
+          ? process.env.STRIPE_STUDENT_ANNUAL_PRICE_ID
+          : process.env.STRIPE_STUDENT_MONTHLY_PRICE_ID;
+    } else {
+      priceId =
+        plan === "annual" ? process.env.STRIPE_ANNUAL_PRICE_ID : process.env.STRIPE_MONTHLY_PRICE_ID;
+    }
+    if (!priceId) {
+      logger.error("Stripe price IDs not configured");
+      return res.status(503).json({ success: false, message: "Payments unavailable" });
     }
 
     const frontend = process.env.FRONTEND_URL || "http://localhost:5173";

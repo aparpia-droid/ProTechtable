@@ -1,13 +1,33 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useRef, useState } from "react";
+import { getAlerts } from "../lib/api";
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadAlerts, setUnreadAlerts] = useState(0);
   const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadAlerts(0);
+      return;
+    }
+    let cancelled = false;
+    getAlerts()
+      .then((res) => {
+        if (!cancelled) setUnreadAlerts(res.data?.unreadCount ?? 0);
+      })
+      .catch(() => {
+        if (!cancelled) setUnreadAlerts(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -35,6 +55,9 @@ export default function Navbar() {
     <>
       <NavLink to="/dashboard" className={linkClass} onClick={() => setMobileOpen(false)}>
         Dashboard
+      </NavLink>
+      <NavLink to="/broker-removal" className={linkClass} onClick={() => setMobileOpen(false)}>
+        Removal
       </NavLink>
       <NavLink to="/pricing" className={linkClass} onClick={() => setMobileOpen(false)}>
         Pricing
@@ -68,7 +91,29 @@ export default function Navbar() {
         <nav className="hidden items-center gap-6 md:flex" aria-label="Main">
           {navLinks}
           {isAuthenticated ? (
-            <div className="relative" ref={menuRef}>
+            <div className="relative flex items-center gap-4" ref={menuRef}>
+              <Link to="/alerts" className="relative">
+                <svg
+                  className="h-5 w-5 text-white/70 transition-colors hover:text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+                  />
+                </svg>
+                {unreadAlerts > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-0.5 text-[10px] font-bold text-white">
+                    {unreadAlerts > 9 ? "9+" : unreadAlerts}
+                  </span>
+                )}
+                <span className="sr-only">Alerts</span>
+              </Link>
               <button
                 type="button"
                 className="flex items-center gap-1 text-sm font-medium text-white/70 transition-all duration-300 hover:text-white"
@@ -152,6 +197,18 @@ export default function Navbar() {
           {navLinks}
           {isAuthenticated ? (
             <>
+              <Link
+                to="/alerts"
+                className="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                onClick={() => setMobileOpen(false)}
+              >
+                Alerts
+                {unreadAlerts > 0 && (
+                  <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                    {unreadAlerts > 9 ? "9+" : unreadAlerts}
+                  </span>
+                )}
+              </Link>
               <Link
                 to="/account"
                 className="rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"

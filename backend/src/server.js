@@ -23,6 +23,7 @@ if (process.env.ENCRYPTION_KEY.length < 32) {
 const app = require("./app");
 const { prisma } = require("./utils/db");
 const { runEmailJobs } = require("./jobs/emailScheduler");
+const { runMonitoringJob } = require("./jobs/monitoringJob");
 
 const port = Number(process.env.PORT) || 5000;
 
@@ -50,6 +51,16 @@ setTimeout(() => {
     logger.error("email_scheduler_startup_error", { error: err.message });
   });
 }, 30000);
+
+if (process.env.NODE_ENV === "production") {
+  setTimeout(() => {
+    runMonitoringJob().catch((e) => logger.warn("monitoring_job_error", { error: e.message }));
+  }, 5 * 60 * 1000);
+
+  setInterval(() => {
+    runMonitoringJob().catch((e) => logger.warn("monitoring_job_error", { error: e.message }));
+  }, 7 * 24 * 60 * 60 * 1000);
+}
 
 function shutdown(signal) {
   logger.info("shutdown_signal", { signal });

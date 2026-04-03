@@ -12,6 +12,7 @@ import {
   listFamilyEmails,
   updateProfile,
   verifyFamilyEmail,
+  toggleMonitoring,
 } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -34,12 +35,14 @@ const tabs = [
   { id: "profile", label: "Profile" },
   { id: "security", label: "Security" },
   { id: "subscription", label: "Subscription" },
+  { id: "monitoring", label: "Monitoring" },
   { id: "family", label: "Family emails" },
   { id: "scans", label: "Past scans" },
 ];
 
 export default function AccountPage() {
   const { logout, refreshUser } = useAuth();
+  const [monitoringBusy, setMonitoringBusy] = useState(false);
   const { showToast } = useToast();
   const { register, handleSubmit, reset } = useForm();
   const pwForm = useForm();
@@ -270,6 +273,92 @@ export default function AccountPage() {
               className="mt-6 inline-block rounded-full bg-navy px-8 py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-navy/90"
             >
               {sub?.tier === "premium" ? "View pricing" : "Upgrade to Premium"}
+            </Link>
+          </section>
+        )}
+
+        {activeTab === "monitoring" && (
+          <section className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur">
+            <h2 className="text-lg font-semibold text-white">Monitoring &amp; alerts</h2>
+            <p className="mt-2 text-sm text-white/50">
+              We periodically check for new breaches against your last assessment. You&apos;ll see alerts here
+              and can get email notifications when something changes.
+            </p>
+
+            {profile.isStudent ? (
+              <div className="mt-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
+                <p className="text-sm font-medium text-emerald-200">Student account</p>
+                <p className="mt-1 text-xs text-emerald-200/70">
+                  Registered with a .edu email — student rates apply on the pricing page.
+                </p>
+              </div>
+            ) : null}
+
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-4">
+              <div>
+                <p className="font-medium text-white">Continuous monitoring</p>
+                <p className="mt-1 text-xs text-white/45">
+                  {sub?.tier === "premium"
+                    ? "Re-scan your email for new breaches on a weekly schedule."
+                    : "Available on Premium."}
+                </p>
+              </div>
+              <label className="relative inline-flex cursor-pointer items-center has-[:disabled]:opacity-50">
+                <input
+                  type="checkbox"
+                  className="peer sr-only"
+                  checked={Boolean(profile.monitoringEnabled)}
+                  onChange={async () => {
+                    if (sub?.tier !== "premium") return;
+                    const next = !profile.monitoringEnabled;
+                    setMonitoringBusy(true);
+                    try {
+                      await toggleMonitoring(next);
+                      const p = await getProfile();
+                      setProfile(p.data.user);
+                      await refreshUser();
+                      showToast(
+                        next
+                          ? "Monitoring enabled. We'll email you when new breaches are detected."
+                          : "Monitoring disabled.",
+                        "success"
+                      );
+                    } catch (e) {
+                      showToast(e.response?.data?.message || "Could not update monitoring", "error");
+                    } finally {
+                      setMonitoringBusy(false);
+                    }
+                  }}
+                  disabled={sub?.tier !== "premium" || monitoringBusy || !profile.emailVerified}
+                />
+                <span className="relative h-7 w-12 shrink-0 rounded-full bg-white/20 transition after:absolute after:left-0.5 after:top-0.5 after:h-6 after:w-6 after:rounded-full after:bg-white after:transition after:content-[''] peer-checked:bg-brandyellow peer-checked:after:translate-x-[1.25rem] peer-checked:after:bg-navy peer-focus-visible:outline peer-focus-visible:ring-2 peer-focus-visible:ring-brandyellow/40" />
+              </label>
+            </div>
+            {!profile.emailVerified && (
+              <p className="mt-3 text-xs text-amber-300/90">Verify your email before you can enable monitoring.</p>
+            )}
+            {sub?.tier !== "premium" && (
+              <Link
+                to="/pricing"
+                className="mt-4 inline-block text-sm font-semibold text-brandyellow hover:brightness-110"
+              >
+                Upgrade to Premium to enable monitoring
+              </Link>
+            )}
+
+            <div className="mt-8 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-4">
+              <p className="text-sm font-medium text-white/70">Alert preferences</p>
+              <p className="mt-2 text-sm text-white/40">
+                Email frequency and quiet hours will be available in a future update. Critical alerts are sent
+                when new breaches are detected.
+              </p>
+            </div>
+
+            <Link
+              to="/alerts"
+              className="mt-6 inline-flex rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white transition-all duration-300 hover:border-brandyellow/40 hover:text-brandyellow"
+            >
+              View security alerts
             </Link>
           </section>
         )}

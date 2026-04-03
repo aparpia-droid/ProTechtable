@@ -1,7 +1,15 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { getSubscription, getUserAssessments } from "../lib/api";
+import {
+  getSubscription,
+  getUserAssessments,
+  getBrokerRemovals,
+  getAlerts,
+  getProfile,
+  toggleMonitoring,
+} from "../lib/api";
+import { useToast } from "../context/ToastContext";
 import ScoreGauge from "../components/ScoreGauge";
 import RiskBadge from "../components/RiskBadge";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -109,22 +117,40 @@ function ScoreChart({ assessments }) {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const { showToast } = useToast();
   const [assessments, setAssessments] = useState([]);
   const [sub, setSub] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [brokerStats, setBrokerStats] = useState(null);
+  const [unreadAlerts, setUnreadAlerts] = useState(0);
+  const [monitoringEnabled, setMonitoringEnabled] = useState(false);
+  const [monitoringBusy, setMonitoringBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [a, s] = await Promise.all([getUserAssessments(), getSubscription()]);
+        const [a, s, br, al, p] = await Promise.all([
+          getUserAssessments().catch(() => ({ data: { data: [] } })),
+          getSubscription().catch(() => ({ data: { data: null } })),
+          getBrokerRemovals().catch(() => ({ data: { stats: null } })),
+          getAlerts().catch(() => ({ data: { unreadCount: 0 } })),
+          getProfile().catch(() => ({ data: { user: null } })),
+        ]);
         if (!cancelled) {
           setAssessments(a.data.data || []);
           setSub(s.data.data);
+          setBrokerStats(br.data.stats || null);
+          setUnreadAlerts(al.data.unreadCount ?? 0);
+          setMonitoringEnabled(Boolean(p.data.user?.monitoringEnabled));
         }
       } catch {
-        if (!cancelled) setAssessments([]);
+        if (!cancelled) {
+          setAssessments([]);
+          setBrokerStats(null);
+          setUnreadAlerts(0);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -134,17 +160,43 @@ export default function DashboardPage() {
     };
   }, []);
 
+  async function handleMonitoringToggle() {
+    if (sub?.tier !== "premium") return;
+    const next = !monitoringEnabled;
+    setMonitoringBusy(true);
+    try {
+      await toggleMonitoring(next);
+      setMonitoringEnabled(next);
+      await refreshUser();
+    } catch (e) {
+      showToast(e.response?.data?.message || "Could not update monitoring", "error");
+    } finally {
+      setMonitoringBusy(false);
+    }
+  }
+
   const latest = assessments[0];
   const firstName = user?.firstName || "";
+  const isPremium = sub?.tier === "premium";
+  const brokerTotal = brokerStats?.total ?? 0;
+  const brokerConfirmed = brokerStats?.confirmed ?? 0;
+  const brokerPct = brokerTotal > 0 ? Math.round((brokerConfirmed / brokerTotal) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-[#0a1628]">
       <section className="bg-navy px-4 py-12">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">
-              Welcome back{firstName ? `, ${firstName}` : ""}
-            </h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-3xl font-bold text-white">
+                Welcome back{firstName ? `, ${firstName}` : ""}
+              </h1>
+              {user?.isStudent ? (
+                <span className="rounded-full border border-emerald-400/40 bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-200">
+                  Student
+                </span>
+              ) : null}
+            </div>
             <p className="mt-1 text-white/60">Here&apos;s your security overview</p>
           </div>
           <Link
@@ -195,6 +247,99 @@ export default function DashboardPage() {
             </p>
           </div>
         </div>
+
+        {!loading && (
+          <div className="mx-auto mt-6 grid max-w-6xl gap-6 md:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur transition-all duration-300 hover:border-white/20">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-white/60">Data broker removal</p>
+                  <p className="mt-2 text-lg font-semibold text-white">
+                    {brokerTotal > 0 ? (
+                      <>
+                        {brokerConfirmed} of {brokerTotal} removed
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </p>
+                </div>
+                <Link
+                  to="/broker-removal"
+                  className="shrink-0 rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-brandyellow transition-all duration-300 hover:border-brandyellow/50 hover:brightness-110"
+                >
+                  Manage removals
+                </Link>
+              </div>
+              {brokerTotal > 0 && (
+                <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-brandyellow to-yellow-300 transition-[width] duration-500"
+                    style={{ width: `${brokerPct}%` }}
+                  />
+                </div>
+              )}
+              {!isPremium && (
+                <p className="mt-3 text-xs text-white/45">
+                  Upgrade to Premium to track removals across all brokers.
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur transition-all duration-300 hover:border-white/20">
+              <p className="text-sm font-medium text-white/60">Continuous monitoring</p>
+              <div className="mt-3 flex flex-wrap items-center gap-4">
+                <label className="relative inline-flex cursor-pointer items-center has-[:disabled]:opacity-50">
+                  <input
+                    type="checkbox"
+                    className="peer sr-only"
+                    checked={monitoringEnabled}
+                    onChange={handleMonitoringToggle}
+                    disabled={!isPremium || monitoringBusy}
+                  />
+                  <span className="relative h-7 w-12 shrink-0 rounded-full bg-white/20 transition after:absolute after:left-0.5 after:top-0.5 after:h-6 after:w-6 after:rounded-full after:bg-white after:transition after:content-[''] peer-checked:bg-brandyellow peer-checked:after:translate-x-[1.25rem] peer-checked:after:bg-navy peer-focus-visible:outline peer-focus-visible:ring-2 peer-focus-visible:ring-brandyellow/40" />
+                </label>
+                <span className="text-sm text-white/80">
+                  {isPremium ? (monitoringEnabled ? "On" : "Off") : "Premium only"}
+                </span>
+              </div>
+              {monitoringEnabled && latest && (
+                <p className="mt-3 text-xs text-white/45">
+                  Baseline from last assessment: {new Date(latest.createdAt).toLocaleString()}
+                </p>
+              )}
+              {monitoringEnabled && !latest && (
+                <p className="mt-3 text-xs text-amber-200/80">Run an assessment so we can compare future breach checks.</p>
+              )}
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                {unreadAlerts > 0 ? (
+                  <Link
+                    to="/alerts"
+                    className="text-sm font-semibold text-brandyellow transition-all duration-300 hover:brightness-110"
+                  >
+                    {unreadAlerts} unread alert{unreadAlerts === 1 ? "" : "s"}
+                  </Link>
+                ) : (
+                  <span className="text-sm text-white/40">No unread alerts</span>
+                )}
+                <Link
+                  to="/alerts"
+                  className="text-sm font-medium text-white/60 underline-offset-2 transition hover:text-white"
+                >
+                  View all
+                </Link>
+              </div>
+              {!isPremium && (
+                <Link
+                  to="/pricing"
+                  className="mt-3 inline-block text-xs font-semibold text-brandyellow hover:brightness-110"
+                >
+                  Upgrade for breach alerts
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
       </section>
 
       <div className="mx-auto max-w-6xl px-4 py-12">

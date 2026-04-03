@@ -32,6 +32,7 @@ function safeUser(user) {
     firstName: user.firstName,
     lastName: user.lastName,
     subscriptionTier: user.subscriptionTier,
+    isStudent: Boolean(user.isStudent),
   };
 }
 
@@ -56,6 +57,7 @@ router.post("/signup", authLimiter, signupValidators, validate, async (req, res,
     const hashedVerificationToken = hashToken(rawVerificationToken);
     const now = new Date();
 
+    const emailLower = email.toLowerCase();
     await prisma.user.create({
       data: {
         email,
@@ -66,6 +68,7 @@ router.post("/signup", authLimiter, signupValidators, validate, async (req, res,
         verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
         emailVerified: false,
         passwordChangedAt: now,
+        isStudent: emailLower.endsWith(".edu"),
       },
     });
 

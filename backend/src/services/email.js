@@ -148,11 +148,77 @@ async function sendFamilyVerificationCode(to, code) {
   });
 }
 
+/**
+ * @param {string} brokerEmail
+ * @param {string} body
+ * @param {string} userEmail
+ */
+async function sendBrokerRemovalEmail(brokerEmail, body, userEmail) {
+  if (!ensureSendGrid()) {
+    logger.warn("SendGrid not configured; skipping broker removal email");
+    return;
+  }
+
+  // Extract subject from body (first line starting with "Subject: ")
+  const lines = body.split("\n");
+  let subject = "Data Removal Request";
+  let emailBody = body;
+  if (lines[0].startsWith("Subject: ")) {
+    subject = lines[0].replace("Subject: ", "").trim();
+    emailBody = lines.slice(1).join("\n").trim();
+  }
+
+  await sgMail.send({
+    to: brokerEmail,
+    from: process.env.SENDGRID_FROM_EMAIL,
+    replyTo: userEmail,
+    subject,
+    text: emailBody,
+    html: `<p>${emailBody.replace(/\n/g, "<br>")}</p>`,
+  });
+}
+
+/**
+ * Send monitoring alert email when new breaches are detected
+ */
+async function sendMonitoringAlert(to, { firstName, newBreachCount, breachNames }) {
+  if (!ensureSendGrid()) return;
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+  const breachList = breachNames.map((n) => `<li style="margin: 4px 0;">${n}</li>`).join("");
+
+  await sgMail.send({
+    to,
+    from: process.env.SENDGRID_FROM_EMAIL,
+    subject: `⚠️ ${newBreachCount} new breach${newBreachCount > 1 ? "es" : ""} detected — ProTechtable`,
+    html: `
+      <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #001F3F; padding: 24px; text-align: center;">
+          <h1 style="color: #FFD700; margin: 0;">ProTechtable</h1>
+        </div>
+        <div style="padding: 24px; background: white;">
+          <h2 style="color: #EF4444; margin-top: 0;">New Breach${newBreachCount > 1 ? "es" : ""} Detected</h2>
+          <p>Hi ${firstName || "there"},</p>
+          <p>Our monitoring detected your email in <strong>${newBreachCount}</strong> new data breach${
+            newBreachCount > 1 ? "es" : ""
+          }:</p>
+          <ul style="background: #FEF2F2; padding: 16px 16px 16px 32px; border-radius: 8px; border-left: 4px solid #EF4444;">${breachList}</ul>
+          <p>Run a new assessment to see the full impact and get updated remediation steps.</p>
+          <div style="text-align: center; padding: 20px 0;">
+            <a href="${frontendUrl}/assessment" style="background: #FFD700; color: #001F3F; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Run Assessment</a>
+          </div>
+        </div>
+      </div>
+    `,
+  });
+}
+
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendExistingAccountEmail,
   sendAssessmentSummaryEmail,
   sendFamilyVerificationCode,
+  sendBrokerRemovalEmail,
+  sendMonitoringAlert,
   isEmailConfigured,
 };

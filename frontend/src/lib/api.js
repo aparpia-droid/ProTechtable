@@ -81,6 +81,22 @@ export function getBrokers() {
   return api.get("/brokers");
 }
 
+export function getBrokerRemovals() {
+  return api.get("/broker-removals");
+}
+
+export function requestBrokerRemoval(brokerId) {
+  return api.post(`/broker-removals/${brokerId}/request`);
+}
+
+export function confirmBrokerRemoval(brokerId) {
+  return api.post(`/broker-removals/${brokerId}/confirm`);
+}
+
+export function requestAllBrokerRemovals() {
+  return api.post("/broker-removals/request-all");
+}
+
 export function createCheckout(body) {
   return api.post("/payment/create-checkout", body);
 }
@@ -119,6 +135,22 @@ export function verifyFamilyEmail(id, body) {
 
 export function deleteFamilyEmail(id) {
   return api.delete(`/user/emails/${id}`);
+}
+
+export function getAlerts() {
+  return api.get("/alerts");
+}
+
+export function markAlertRead(id) {
+  return api.post(`/alerts/${id}/read`);
+}
+
+export function markAllAlertsRead() {
+  return api.post("/alerts/read-all");
+}
+
+export function toggleMonitoring(enabled) {
+  return api.post("/user/monitoring", { enabled });
 }
 
 export { api };
