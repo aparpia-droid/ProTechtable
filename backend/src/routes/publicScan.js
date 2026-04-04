@@ -4,6 +4,10 @@ const { logger } = require("../utils/logger");
 
 const router = express.Router();
 
+function buildDataClassesSummary(breaches) {
+  return [...new Set(breaches.flatMap((b) => b.DataClasses || []))].slice(0, 8);
+}
+
 router.post("/check", assessmentLimiter, async (req, res, next) => {
   try {
     const { email } = req.body;
@@ -30,7 +34,17 @@ router.post("/check", assessmentLimiter, async (req, res, next) => {
     if (resp.status === 404) {
       return res.json({
         success: true,
-        data: { breachCount: 0, breaches: [], riskScore: 5, brokerEstimate: 0, totalBreaches: 0, previewOnly: true },
+        data: {
+          breachCount: 0,
+          breaches: [],
+          riskScore: 5,
+          brokerEstimate: 0,
+          totalBreaches: 0,
+          previewOnly: true,
+          exposedAccounts: 0,
+          passwordsLeaked: false,
+          dataClassSummary: [],
+        },
       });
     }
 
@@ -55,8 +69,10 @@ router.post("/check", assessmentLimiter, async (req, res, next) => {
     const preview = breaches.slice(0, 3).map((b) => ({
       name: b.Name,
       date: b.BreachDate,
-      dataClasses: (b.DataClasses || []).slice(0, 3),
+      dataClasses: (b.DataClasses || []).slice(0, 5),
     }));
+
+    const dataClassSummary = buildDataClassesSummary(breaches);
 
     return res.json({
       success: true,
@@ -67,6 +83,9 @@ router.post("/check", assessmentLimiter, async (req, res, next) => {
         brokerEstimate,
         totalBreaches: breachCount,
         previewOnly: true,
+        exposedAccounts: breachCount,
+        passwordsLeaked: hasPassword,
+        dataClassSummary,
       },
     });
   } catch (e) {

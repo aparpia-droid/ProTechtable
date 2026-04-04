@@ -2,7 +2,7 @@
  * Circular score gauge using SVG stroke-dasharray.
  * @param {{ score: number, size?: number, label?: string }} props
  */
-export default function ScoreGauge({ score, size = 200, label = "Score", showRiskLabel = true }) {
+export default function ScoreGauge({ score, size = 200, label = "Digital Safety Score", showRiskLabel = true }) {
   const s = Math.min(100, Math.max(0, Number(score) || 0));
   const stroke =
     s <= 25 ? "#22C55E" : s <= 50 ? "#EAB308" : s <= 75 ? "#F97316" : "#EF4444";

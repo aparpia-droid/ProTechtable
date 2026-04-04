@@ -167,6 +167,12 @@ export default function Navbar() {
             </div>
           ) : (
             <div className="flex items-center gap-4">
+              <NavLink
+                to="/scan"
+                className="rounded-lg border border-brandyellow/20 bg-brandyellow/10 px-4 py-2 text-sm font-semibold text-brandyellow transition hover:bg-brandyellow/20"
+              >
+                Check Your Score
+              </NavLink>
               <Link
                 to="/login"
                 className="text-sm font-medium text-white/70 transition-all duration-300 hover:text-white"
@@ -238,6 +244,13 @@ export default function Navbar() {
             </>
           ) : (
             <div className="mt-2 flex flex-col gap-3 border-t border-white/10 pt-4">
+              <Link
+                to="/scan"
+                className="rounded-lg border border-brandyellow/20 bg-brandyellow/10 px-3 py-2 text-center text-sm font-semibold text-brandyellow transition hover:bg-brandyellow/20"
+                onClick={() => setMobileOpen(false)}
+              >
+                Check Your Score
+              </Link>
               <Link
                 to="/login"
                 className="rounded-lg px-3 py-2 text-center text-sm font-medium text-white/70 transition-colors hover:text-white"

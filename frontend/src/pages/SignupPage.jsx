@@ -41,6 +41,11 @@ function ReqRow({ met, label }) {
 export default function SignupPage() {
   const [searchParams] = useSearchParams();
   const refCode = searchParams.get("ref");
+  const scoreParamRaw = searchParams.get("score");
+  const scoreParam =
+    scoreParamRaw != null && /^\d{1,3}$/.test(scoreParamRaw) && Number(scoreParamRaw) <= 100
+      ? scoreParamRaw
+      : null;
   const { register, handleSubmit, watch, formState } = useForm();
   const { showToast } = useToast();
   const pw = watch("password") || "";
@@ -138,6 +143,17 @@ export default function SignupPage() {
           {refCode && (
             <div className="mb-6 rounded-xl border border-brandyellow/30 bg-brandyellow/10 px-4 py-3 text-center text-sm text-brandyellow">
               You were referred! Both you and your friend will earn 1 month free Premium when you upgrade.
+            </div>
+          )}
+          {scoreParam && (
+            <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-center">
+              <p className="text-sm text-red-400">
+                Your Digital Safety Score:{" "}
+                <span className="font-bold text-white">{scoreParam}/100</span>
+              </p>
+              <p className="mt-1 text-xs text-gray-400">
+                Sign up to see your full report and start removing your data.
+              </p>
             </div>
           )}
 

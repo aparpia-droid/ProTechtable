@@ -98,20 +98,18 @@ export default function LandingPage() {
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
               <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight text-white md:text-5xl lg:text-6xl">
-                Your personal data is on{" "}
-                <span className="text-red-400">dozens of broker sites</span>.{" "}
-                <span className="text-brandyellow">We remove it.</span>
+                What do employers see when they Google you?
               </h1>
               <p className="mt-5 max-w-lg text-lg leading-relaxed text-white/70">
-                ProTechtable scans for data breaches, finds which brokers are selling your information, and
-                automatically removes you — so you don&apos;t have to.
+                ProTechtable shows you your breach exposure, which data brokers are selling your info, and what
+                accounts are linked to your email — before a recruiter runs a background check.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <Link
                   to={primaryCta}
                   className="rounded-lg bg-brandyellow px-7 py-3.5 text-sm font-bold text-navy shadow-lg shadow-brandyellow/20 transition hover:brightness-110"
                 >
-                  Scan My Exposure Free →
+                  Check What&apos;s Exposed →
                 </Link>
                 <a
                   href="#how-it-works"
@@ -139,7 +137,7 @@ export default function LandingPage() {
                     to={primaryCta}
                     className="block w-full rounded-lg bg-brandyellow py-3 text-center text-sm font-bold text-navy hover:brightness-110"
                   >
-                    Scan My Exposure Free →
+                    Check What&apos;s Exposed →
                   </Link>
                 </div>
               </div>
@@ -165,7 +163,8 @@ export default function LandingPage() {
               </span>
               <h3 className="mt-4 text-lg font-bold text-white">Scan</h3>
               <p className="mt-3 text-sm leading-relaxed text-gray-400">
-                Enter your email. We check breach databases and estimate your broker exposure in seconds.
+                Enter your email. See what a background check would reveal about you — breaches, broker listings, and
+                exposed accounts.
               </p>
             </li>
             <li className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur">
@@ -177,7 +176,8 @@ export default function LandingPage() {
               </span>
               <h3 className="mt-4 text-lg font-bold text-white">See Your Risk</h3>
               <p className="mt-3 text-sm leading-relaxed text-gray-400">
-                Get a clear risk score, see exactly which brokers likely have your data, and what was leaked.
+                Get your Digital Safety Score (0-100), see exactly what data is exposed, and understand what employers
+                can find.
               </p>
             </li>
             <li className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur">
@@ -247,7 +247,7 @@ export default function LandingPage() {
                 to={primaryCta}
                 className="mt-8 block rounded-lg border border-navy/20 py-3 text-center text-sm font-bold text-navy transition hover:bg-navy/5"
               >
-                Scan My Exposure Free →
+                Check What&apos;s Exposed →
               </Link>
             </div>
             <div className="relative rounded-2xl border-2 border-brandyellow bg-navy p-8 shadow-xl">
@@ -412,7 +412,7 @@ export default function LandingPage() {
             to={primaryCta}
             className="mt-8 inline-block rounded-lg bg-brandyellow px-10 py-4 text-sm font-bold text-navy shadow-lg shadow-brandyellow/20 transition hover:brightness-110"
           >
-            Scan My Exposure Free →
+            Check What&apos;s Exposed →
           </Link>
         </div>
       </section>
