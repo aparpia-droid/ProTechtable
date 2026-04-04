@@ -17,11 +17,11 @@ const pwdRules = {
 };
 
 const inputDark =
-  "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 transition-all duration-300 focus:border-brandyellow/50 focus:outline-none focus:ring-1 focus:ring-brandyellow/25";
+  "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 transition-all duration-300 focus:border-brandyellow/50 focus:outline-none focus:ring-1 focus:ring-brandyellow/25 focus:shadow-[0_0_0_3px_rgba(255,215,0,0.1)]";
 
 function ReqRow({ met, label }) {
   return (
-    <div className="flex items-center gap-2 text-sm">
+    <div className="flex items-center gap-2 text-caption">
       {met ? (
         <svg className="h-4 w-4 shrink-0 text-green-400" fill="currentColor" viewBox="0 0 20 20">
           <path
@@ -91,7 +91,7 @@ export default function SignupPage() {
 
   if (signupSuccess) {
     return (
-      <div className="relative min-h-[calc(100vh-73px)] overflow-hidden bg-navy px-4 py-12">
+      <div className="animate-fade-in relative min-h-[calc(100vh-73px)] overflow-hidden bg-navy px-4 py-12">
         <div className="pointer-events-none absolute inset-0" aria-hidden>
           <div className="absolute left-1/4 top-20 h-72 w-72 rounded-full bg-brandyellow/20 blur-3xl" />
           <div className="absolute bottom-20 right-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
@@ -130,7 +130,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-73px)] overflow-hidden bg-navy px-4 py-12">
+    <div className="animate-fade-in relative min-h-[calc(100vh-73px)] overflow-hidden bg-navy px-4 py-12">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute left-1/4 top-20 h-72 w-72 rounded-full bg-brandyellow/20 blur-3xl" />
         <div className="absolute bottom-20 right-1/4 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
@@ -138,6 +138,21 @@ export default function SignupPage() {
 
       <div className="relative mx-auto w-full max-w-md animate-fade-in">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur">
+          <div className="mb-6 flex items-center justify-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brandyellow text-micro font-bold text-gray-900">
+                1
+              </div>
+              <span className="text-micro font-medium text-white">Create account</span>
+            </div>
+            <div className="h-px w-8 bg-surface-border" />
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-overlay text-micro text-gray-500">
+                2
+              </div>
+              <span className="text-micro text-gray-500">Verify email</span>
+            </div>
+          </div>
           <h1 className="text-center text-3xl font-bold text-white">Create your account</h1>
           <p className="mb-8 text-center text-white/60">Start protecting your digital identity</p>
           {refCode && (
@@ -201,7 +216,11 @@ export default function SignupPage() {
                 aria-invalid={formState.errors.password ? "true" : "false"}
                 aria-describedby="password-hint"
               />
-              <div id="password-hint" className="mt-3 space-y-1.5 rounded-xl border border-white/5 bg-white/[0.03] p-3">
+              <div
+                id="password-hint"
+                className="mt-3 space-y-2 rounded-card border border-surface-border bg-surface-raised p-4"
+              >
+                <p className="text-caption font-semibold text-gray-300">Password requirements</p>
                 <ReqRow met={hasLen} label="At least 12 characters" />
                 <ReqRow met={hasLower} label="One lowercase letter" />
                 <ReqRow met={hasUpper} label="One uppercase letter" />
@@ -230,7 +249,7 @@ export default function SignupPage() {
             </div>
             <button
               type="submit"
-              className="w-full rounded-full bg-brandyellow py-4 text-sm font-semibold text-navy shadow-lg shadow-yellow-500/25 transition-all duration-300 hover:brightness-110"
+              className="w-full rounded-full bg-brandyellow py-4 text-sm font-semibold text-navy shadow-lg shadow-yellow-500/25 transition-all duration-300 hover:brightness-110 active:scale-[0.98]"
             >
               Sign up
             </button>

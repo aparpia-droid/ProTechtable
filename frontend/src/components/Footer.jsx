@@ -1,8 +1,17 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 export default function Footer() {
+  const [subscribed, setSubscribed] = useState(false);
+
+  function handleNewsletter(e) {
+    e.preventDefault();
+    setSubscribed(true);
+  }
+
   return (
     <footer className="mt-auto bg-gradient-to-b from-navy to-[#001530] text-white">
+      <div className="h-px bg-gradient-to-r from-transparent via-brandyellow/20 to-transparent" />
       <div className="mx-auto max-w-6xl px-4 py-14">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           <div>
@@ -63,34 +72,29 @@ export default function Footer() {
                 support@protechtable.com
               </a>
             </p>
-            <div className="mt-4 flex flex-wrap gap-3 text-sm text-white/50">
-              <span aria-hidden>X</span>
-              <span aria-hidden>in</span>
-              <span aria-hidden>GH</span>
-            </div>
-            <form
-              className="mt-6"
-              onSubmit={(e) => {
-                e.preventDefault();
-              }}
-            >
-              <p className="text-xs font-medium text-white/50">Security newsletter</p>
-              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                <input
-                  type="email"
-                  name="newsletter"
-                  placeholder="you@email.com"
-                  className="w-full flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/40 backdrop-blur transition-all duration-300 focus:border-brandyellow/50 focus:outline-none focus:ring-1 focus:ring-brandyellow/25"
-                  aria-label="Email for newsletter"
-                />
-                <button
-                  type="submit"
-                  className="rounded-xl bg-brandyellow px-5 py-2.5 text-sm font-semibold text-navy transition-all duration-300 hover:brightness-110"
-                >
-                  Join
-                </button>
-              </div>
-            </form>
+            {subscribed ? (
+              <p className="mt-6 text-caption text-success">Thanks! We&apos;ll keep you updated.</p>
+            ) : (
+              <form className="mt-6" onSubmit={handleNewsletter}>
+                <p className="text-xs font-medium text-white/50">Security newsletter</p>
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                  <input
+                    type="email"
+                    name="newsletter"
+                    required
+                    placeholder="you@email.com"
+                    className="w-full flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/40 backdrop-blur transition-all duration-300 focus:border-brandyellow/50 focus:outline-none focus:ring-1 focus:ring-brandyellow/25 focus:shadow-[0_0_0_3px_rgba(255,215,0,0.1)]"
+                    aria-label="Email for newsletter"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-brandyellow px-5 py-2.5 text-sm font-semibold text-navy transition-all duration-300 hover:brightness-110 active:scale-[0.98]"
+                  >
+                    Join
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </div>

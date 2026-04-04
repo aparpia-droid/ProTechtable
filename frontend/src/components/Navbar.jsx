@@ -47,8 +47,10 @@ export default function Navbar() {
   }
 
   const linkClass = ({ isActive }) =>
-    `text-sm font-medium transition-all duration-300 ${
-      isActive ? "text-white" : "text-white/70 hover:text-white"
+    `relative px-1 py-2 text-caption font-medium transition-colors duration-200 ${
+      isActive
+        ? "text-brandyellow after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-full after:bg-brandyellow"
+        : "text-white/60 hover:text-white"
     }`;
 
   const navLinks = (
@@ -84,24 +86,28 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-navy/80 backdrop-blur-xl">
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brandyellow/20 to-transparent" />
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
         <Link
           to="/"
           className="flex items-center gap-2 text-xl font-bold text-white"
           aria-label="ProTechtable home"
         >
-          <span
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-brandyellow/15 text-brandyellow"
-            aria-hidden
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
-              />
-            </svg>
-          </span>
+          <div className="relative">
+            <div className="absolute -inset-2 rounded-full bg-brandyellow/10 blur-md" aria-hidden />
+            <span
+              className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-brandyellow/15 text-brandyellow"
+              aria-hidden
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                />
+              </svg>
+            </span>
+          </div>
           ProTechtable
         </Link>
 
@@ -133,13 +139,15 @@ export default function Navbar() {
               </Link>
               <button
                 type="button"
-                className="flex items-center gap-1 text-sm font-medium text-white/70 transition-all duration-300 hover:text-white"
+                className="flex items-center gap-2 text-sm font-medium text-white/70 transition-all duration-300 hover:text-white"
                 aria-expanded={userMenuOpen}
                 aria-haspopup="true"
                 aria-label="User menu"
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
               >
-                {user?.firstName || user?.email || "Account"}
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brandyellow/20 text-caption font-bold text-brandyellow">
+                  {(user?.firstName?.[0] || user?.email?.[0] || "U").toUpperCase()}
+                </span>
                 <span aria-hidden>▾</span>
               </button>
               {userMenuOpen && (
@@ -212,8 +220,8 @@ export default function Navbar() {
       </div>
 
       <div
-        className={`overflow-hidden border-t border-white/10 bg-navy/95 backdrop-blur transition-all duration-300 md:hidden ${
-          mobileOpen ? "max-h-[28rem] opacity-100" : "max-h-0 opacity-0"
+        className={`md:hidden overflow-hidden border-t border-white/10 bg-navy/95 backdrop-blur transition-all duration-300 ease-in-out ${
+          mobileOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
         }`}
       >
         <nav className="flex flex-col gap-1 px-4 py-4" aria-label="Mobile">

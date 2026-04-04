@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import html2canvas from "html2canvas";
 import { publicScan } from "../lib/api";
-import ScoreGauge from "../components/ScoreGauge";
+import ProgressRing from "../components/ui/ProgressRing";
 import ShareCard from "../components/ShareCard";
 
 const STEPS = [
@@ -30,6 +30,8 @@ export default function ScanPage() {
   const stepTimersRef = useRef([]);
   const shareRef = useRef(null);
   const [showShareCard, setShowShareCard] = useState(false);
+  const [revealStep, setRevealStep] = useState(0);
+  const [shared, setShared] = useState(false);
 
   const scanBaseUrl =
     typeof window !== "undefined" ? `${window.location.origin}/scan` : "https://protechtable.com/scan";
@@ -39,6 +41,21 @@ export default function ScanPage() {
       stepTimersRef.current.forEach((id) => clearTimeout(id));
     };
   }, []);
+
+  useEffect(() => {
+    if (!result) {
+      setRevealStep(0);
+      return;
+    }
+    const timers = [
+      setTimeout(() => setRevealStep(1), 0),
+      setTimeout(() => setRevealStep(2), 400),
+      setTimeout(() => setRevealStep(3), 800),
+      setTimeout(() => setRevealStep(4), 1200),
+      setTimeout(() => setRevealStep(5), 1600),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [result]);
 
   useEffect(() => {
     if (!loading) return;
@@ -68,6 +85,8 @@ export default function ScanPage() {
     setResult(null);
     setApiPayload(null);
     setScanStep(0);
+    setRevealStep(0);
+    setShared(false);
     stepTimersRef.current.forEach((id) => clearTimeout(id));
     stepTimersRef.current = [];
 
@@ -144,6 +163,8 @@ export default function ScanPage() {
           0.95
         );
       });
+      setShared(true);
+      setTimeout(() => setShared(false), 3000);
     } catch (err) {
       console.error("Share card generation failed", err);
     }
@@ -154,7 +175,7 @@ export default function ScanPage() {
   const score = result?.riskScore ?? 0;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#0a0a0f] px-4 py-16">
+    <div className="animate-fade-in relative min-h-screen overflow-hidden bg-[#0a0a0f] px-4 py-16">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute -left-32 top-20 h-72 w-72 rounded-full bg-brandyellow/10 blur-3xl" />
         <div className="absolute -right-24 bottom-20 h-96 w-96 rounded-full bg-blue-500/5 blur-3xl" />
@@ -184,7 +205,7 @@ export default function ScanPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brandyellow"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brandyellow focus:shadow-[0_0_0_3px_rgba(255,215,0,0.1)]"
           />
           <button
             type="submit"
@@ -269,53 +290,83 @@ export default function ScanPage() {
 
         {result && !loading && (
           <div className="mt-10 space-y-8">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
-              <p className="text-center text-xs font-semibold uppercase tracking-widest text-gray-500">
-                Your Digital Safety Score
-              </p>
-              <div className="mt-4 flex justify-center">
-                <ScoreGauge score={score} size={200} label="Digital Safety Score" showRiskLabel />
-              </div>
-
-              <div className="mt-8 grid grid-cols-3 gap-3 text-center">
-                <div className="rounded-xl border border-white/10 bg-white/[0.03] py-4">
-                  <p className="text-2xl font-bold text-white">{breachTotal}</p>
-                  <p className="mt-1 text-xs text-gray-400">Breaches Found</p>
+            <div
+              className={`rounded-card border p-card-pad-lg backdrop-blur-xl ${
+                result.riskScore > 75
+                  ? "border-danger animate-pulse-soft bg-danger-soft/30"
+                  : "border-surface-border bg-surface-raised"
+              }`}
+            >
+              {revealStep >= 1 && (
+                <div className="animate-fade-up">
+                  <p className="text-center text-xs font-semibold uppercase tracking-widest text-gray-500">
+                    Your Digital Safety Score
+                  </p>
+                  <div className="mt-4 flex justify-center animate-scale-in">
+                    <ProgressRing value={result.riskScore} size={200} label="Digital Safety Score" />
+                  </div>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.03] py-4">
-                  <p className="text-2xl font-bold text-white">{formatBrokerSites(result.brokerEstimate)}</p>
-                  <p className="mt-1 text-xs text-gray-400">Broker Sites</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.03] py-4">
-                  <p className="text-2xl font-bold text-white">{result.exposedAccounts ?? breachTotal}</p>
-                  <p className="mt-1 text-xs text-gray-400">Exposed Accounts</p>
-                </div>
-              </div>
+              )}
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                <button
-                  type="button"
-                  onClick={handleShare}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-brandyellow/30 bg-brandyellow/10 px-8 py-3 font-bold text-brandyellow transition hover:bg-brandyellow/20"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                    />
-                  </svg>
-                  Share My Score
-                </button>
-                <Link
-                  to={`/signup?score=${encodeURIComponent(String(result.riskScore))}`}
-                  className="inline-flex items-center justify-center rounded-xl bg-brandyellow px-8 py-3 font-bold text-gray-900 hover:bg-yellow-300"
-                >
-                  Remove My Data →
-                </Link>
-              </div>
+              {revealStep >= 2 && (
+                <div className="mt-8 grid animate-fade-up grid-cols-3 gap-3 text-center">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] py-4">
+                    <p className="text-2xl font-bold text-white">{breachTotal}</p>
+                    <p className="mt-1 text-xs text-gray-400">Breaches Found</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] py-4">
+                    <p className="text-2xl font-bold text-white">{formatBrokerSites(result.brokerEstimate)}</p>
+                    <p className="mt-1 text-xs text-gray-400">Broker Sites</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] py-4">
+                    <p className="text-2xl font-bold text-white">{result.exposedAccounts ?? breachTotal}</p>
+                    <p className="mt-1 text-xs text-gray-400">Exposed Accounts</p>
+                  </div>
+                </div>
+              )}
 
+              {revealStep >= 2 && (
+                <div className="mt-8 flex animate-fade-up flex-col gap-3 sm:flex-row sm:justify-center">
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl border px-8 py-3 font-bold transition ${
+                      shared
+                        ? "border-success-muted bg-success-soft text-success"
+                        : "border-brandyellow/30 bg-brandyellow/10 text-brandyellow hover:bg-brandyellow/20"
+                    } active:scale-[0.98]`}
+                  >
+                    {shared ? (
+                      <>
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Shared!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                          />
+                        </svg>
+                        Share My Score
+                      </>
+                    )}
+                  </button>
+                  <Link
+                    to={`/signup?score=${encodeURIComponent(String(result.riskScore))}`}
+                    className="inline-flex items-center justify-center rounded-xl bg-brandyellow px-8 py-3 font-bold text-gray-900 hover:bg-yellow-300 active:scale-[0.98]"
+                  >
+                    Remove My Data →
+                  </Link>
+                </div>
+              )}
+
+              {revealStep >= 2 && (
               <div className="mt-4 flex justify-center gap-3 text-sm">
                 <a
                   href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
@@ -337,43 +388,76 @@ export default function ScanPage() {
                   Share on LinkedIn
                 </a>
               </div>
+              )}
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+            {revealStep >= 3 && (
+            <div className="animate-fade-up rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5">
               <h2 className="flex items-center gap-2 text-lg font-bold text-white">
                 <span aria-hidden>👔</span> What employers can find about you
               </h2>
               <ul className="mt-4 space-y-3 text-sm text-gray-300">
                 {breachTotal > 0 && (
-                  <li className="flex gap-2">
-                    <span className="text-amber-400" aria-hidden>
-                      ⚠️
-                    </span>
-                    Your email appears in {breachTotal} known data breach{breachTotal === 1 ? "" : "es"}
+                  <li className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-danger-soft">
+                      <svg className="h-3.5 w-3.5 text-danger" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+                        <path
+                          fillRule="evenodd"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-body text-gray-300">
+                      Your email appears in{" "}
+                      <span className="font-semibold text-white">{breachTotal}</span> known data breach
+                      {breachTotal === 1 ? "" : "es"}
+                    </p>
                   </li>
                 )}
                 {(result.brokerEstimate ?? 0) > 0 && (
-                  <li className="flex gap-2">
-                    <span className="text-amber-400" aria-hidden>
-                      ⚠️
-                    </span>
-                    Your personal info is on {formatBrokerSites(result.brokerEstimate)} broker sites
+                  <li className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-danger-soft">
+                      <svg className="h-3.5 w-3.5 text-danger" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+                        <path
+                          fillRule="evenodd"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-body text-gray-300">
+                      Your personal info is on{" "}
+                      <span className="font-semibold text-white">{formatBrokerSites(result.brokerEstimate)}</span>{" "}
+                      broker sites
+                    </p>
                   </li>
                 )}
                 {breachTotal > 0 && (
-                  <li className="flex gap-2">
-                    <span className="text-amber-400" aria-hidden>
-                      ⚠️
-                    </span>
-                    {breachTotal} account{breachTotal === 1 ? "" : "s"} linked to this email were found
+                  <li className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-danger-soft">
+                      <svg className="h-3.5 w-3.5 text-danger" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+                        <path
+                          fillRule="evenodd"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-body text-gray-300">
+                      <span className="font-semibold text-white">{breachTotal}</span> account
+                      {breachTotal === 1 ? "" : "s"} linked to this email were found
+                    </p>
                   </li>
                 )}
                 {result.passwordsLeaked && (
-                  <li className="flex gap-2">
-                    <span className="text-amber-400" aria-hidden>
-                      ⚠️
-                    </span>
-                    Passwords associated with this email leaked
+                  <li className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-danger-soft">
+                      <svg className="h-3.5 w-3.5 text-danger" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+                        <path
+                          fillRule="evenodd"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-body text-gray-300">Passwords associated with this email leaked</p>
                   </li>
                 )}
                 {breachTotal === 0 && (result.brokerEstimate ?? 0) === 0 && (
@@ -398,8 +482,10 @@ export default function ScanPage() {
               )}
               <p className="mt-4 text-sm text-gray-500">A background check would reveal this data.</p>
             </div>
+            )}
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+            {revealStep >= 4 && (
+            <div className="animate-fade-up rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5">
               <h2 className="text-lg font-bold text-white">
                 <span className="mr-2" aria-hidden>
                   📋
@@ -441,8 +527,10 @@ export default function ScanPage() {
                 </div>
               )}
             </div>
+            )}
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+            {revealStep >= 5 && (
+            <div className="animate-fade-up rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5">
               <h2 className="text-lg font-bold text-white">
                 <span className="mr-2" aria-hidden>
                   ⚡
@@ -461,12 +549,15 @@ export default function ScanPage() {
                 </Link>
               </p>
             </div>
+            )}
 
-            <p className="text-center text-sm text-gray-500">
+            {revealStep >= 5 && (
+            <p className="animate-fade-in text-center text-sm text-gray-500">
               <Link to="/login" className="text-brandyellow hover:brightness-110">
                 Already have an account? Log in
               </Link>
             </p>
+            )}
           </div>
         )}
       </div>

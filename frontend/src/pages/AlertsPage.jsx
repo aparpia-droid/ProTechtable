@@ -68,7 +68,7 @@ export default function AlertsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a1628] px-4 py-12">
+    <div className="animate-fade-in min-h-screen bg-[#0a1628] px-4 py-12">
       <div className="mx-auto max-w-3xl">
         <section className="rounded-2xl border border-white/10 bg-navy px-6 py-10 text-center backdrop-blur">
           <h1 className="text-3xl font-bold text-white md:text-4xl">Security alerts</h1>
@@ -130,8 +130,30 @@ export default function AlertsPage() {
             Loading alerts…
           </div>
         ) : alerts.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/60">
-            No alerts yet. Enable monitoring to get notified of new breaches.
+          <div className="mt-6 flex flex-col items-center rounded-2xl border border-white/10 bg-white/5 px-8 py-12 text-center">
+            <svg
+              className="h-16 w-16 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1}
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+              />
+            </svg>
+            <p className="mt-4 text-body text-gray-400">
+              No alerts yet. Enable monitoring to get notified of new breaches.
+            </p>
+            <Link
+              to="/account"
+              className="mt-6 inline-flex rounded-full bg-brandyellow px-6 py-3 text-sm font-semibold text-navy transition hover:brightness-110 active:scale-[0.98]"
+            >
+              Notification settings
+            </Link>
           </div>
         ) : (
           <ul className="mt-6 space-y-4">

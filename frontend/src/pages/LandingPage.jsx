@@ -1,6 +1,35 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+
+function AnimateIn({ children, className = "", delay = 0 }) {
+  const [ref, setRef] = useState(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (!ref) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setVisible(true);
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(ref);
+    return () => observer.disconnect();
+  }, [ref]);
+
+  return (
+    <div
+      ref={setRef}
+      className={`transition-all duration-700 ease-out ${
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+      } ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
 
 function IconShield() {
   return (
@@ -87,7 +116,7 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(-1);
 
   return (
-    <div className="overflow-x-hidden">
+    <div className="animate-fade-in overflow-x-hidden">
       <section className="relative bg-navy px-4 pb-20 pt-8 md:pb-32 md:pt-12">
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
           <div className="absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-brandyellow/10 blur-[120px]" />
@@ -104,12 +133,30 @@ export default function LandingPage() {
                 ProTechtable shows you your breach exposure, which data brokers are selling your info, and what
                 accounts are linked to your email — before a recruiter runs a background check.
               </p>
+              <div className="mt-6 inline-flex items-center gap-2 rounded-badge border border-danger-muted bg-danger-soft px-4 py-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-danger opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-danger" />
+                </span>
+                <span className="text-caption text-danger">2,847 data breaches exposed this week</span>
+              </div>
               <div className="mt-8 flex flex-wrap gap-4">
                 <Link
                   to={primaryCta}
-                  className="rounded-lg bg-brandyellow px-7 py-3.5 text-sm font-bold text-navy shadow-lg shadow-brandyellow/20 transition hover:brightness-110"
+                  className="group inline-flex items-center gap-2 rounded-lg bg-brandyellow px-7 py-3.5 text-sm font-bold text-navy shadow-lg shadow-brandyellow/20 transition hover:brightness-110 active:scale-[0.98]"
                 >
-                  Check What&apos;s Exposed →
+                  <span className="inline-flex items-center gap-2">
+                    Check What&apos;s Exposed
+                    <svg
+                      className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </span>
                 </Link>
                 <a
                   href="#how-it-works"
@@ -147,57 +194,88 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="how-it-works" className="bg-[#0a0a0f] px-4 py-20">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-center text-sm font-semibold uppercase tracking-widest text-brandyellow">
-            How it works
-          </p>
-          <h2 className="mt-3 text-center text-3xl font-bold text-white md:text-4xl">Three steps to take control</h2>
-          <ol className="mt-14 grid gap-10 md:grid-cols-3">
-            <li className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brandyellow/30 bg-brandyellow/10">
-                <IconShield />
-              </div>
-              <span className="mt-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-brandyellow text-sm font-bold text-navy">
-                1
-              </span>
-              <h3 className="mt-4 text-lg font-bold text-white">Scan</h3>
-              <p className="mt-3 text-sm leading-relaxed text-gray-400">
-                Enter your email. See what a background check would reveal about you — breaches, broker listings, and
-                exposed accounts.
-              </p>
-            </li>
-            <li className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brandyellow/30 bg-brandyellow/10">
-                <IconChartBar />
-              </div>
-              <span className="mt-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-brandyellow text-sm font-bold text-navy">
-                2
-              </span>
-              <h3 className="mt-4 text-lg font-bold text-white">See Your Risk</h3>
-              <p className="mt-3 text-sm leading-relaxed text-gray-400">
-                Get your Digital Safety Score (0-100), see exactly what data is exposed, and understand what employers
-                can find.
-              </p>
-            </li>
-            <li className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brandyellow/30 bg-brandyellow/10">
-                <IconTrash />
-              </div>
-              <span className="mt-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-brandyellow text-sm font-bold text-navy">
-                3
-              </span>
-              <h3 className="mt-4 text-lg font-bold text-white">We Remove You</h3>
-              <p className="mt-3 text-sm leading-relaxed text-gray-400">
-                Upgrade to Premium and we automatically send opt-out requests to every broker — and keep you
-                removed.
-              </p>
-            </li>
-          </ol>
-        </div>
-      </section>
+      <AnimateIn>
+        <section id="how-it-works" className="bg-[#0a0a0f] px-4 py-20">
+          <div className="mx-auto max-w-6xl">
+            <p className="text-center text-sm font-semibold uppercase tracking-widest text-brandyellow">
+              How it works
+            </p>
+            <h2 className="mt-3 text-center text-3xl font-bold text-white md:text-4xl">Three steps to take control</h2>
+            <ol className="mt-14 flex list-none flex-col gap-10 lg:flex-row lg:items-stretch lg:justify-center lg:gap-0">
+              <li className="flex flex-1 flex-col rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur transition-all duration-300 hover:-translate-y-0.5 lg:max-w-sm">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brandyellow/30 bg-brandyellow/10">
+                  <IconShield />
+                </div>
+                <span className="mt-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-brandyellow text-sm font-bold text-navy">
+                  1
+                </span>
+                <h3 className="mt-4 text-lg font-bold text-white">Scan</h3>
+                <p className="mt-3 text-sm leading-relaxed text-gray-400">
+                  Enter your email. See what a background check would reveal about you — breaches, broker listings, and
+                  exposed accounts.
+                </p>
+              </li>
+              <li
+                className="hidden items-center justify-center lg:flex lg:w-20 lg:flex-shrink-0"
+                aria-hidden
+              >
+                <div className="flex items-center justify-center">
+                  <div className="h-px w-12 border-t-2 border-dashed border-white/20" />
+                  <svg className="h-4 w-4 text-white/20" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                    />
+                  </svg>
+                </div>
+              </li>
+              <li className="flex flex-1 flex-col rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur transition-all duration-300 hover:-translate-y-0.5 lg:max-w-sm">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brandyellow/30 bg-brandyellow/10">
+                  <IconChartBar />
+                </div>
+                <span className="mt-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-brandyellow text-sm font-bold text-navy">
+                  2
+                </span>
+                <h3 className="mt-4 text-lg font-bold text-white">See Your Risk</h3>
+                <p className="mt-3 text-sm leading-relaxed text-gray-400">
+                  Get your Digital Safety Score (0-100), see exactly what data is exposed, and understand what employers
+                  can find.
+                </p>
+              </li>
+              <li
+                className="hidden items-center justify-center lg:flex lg:w-20 lg:flex-shrink-0"
+                aria-hidden
+              >
+                <div className="flex items-center justify-center">
+                  <div className="h-px w-12 border-t-2 border-dashed border-white/20" />
+                  <svg className="h-4 w-4 text-white/20" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                    />
+                  </svg>
+                </div>
+              </li>
+              <li className="flex flex-1 flex-col rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur transition-all duration-300 hover:-translate-y-0.5 lg:max-w-sm">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brandyellow/30 bg-brandyellow/10">
+                  <IconTrash />
+                </div>
+                <span className="mt-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-brandyellow text-sm font-bold text-navy">
+                  3
+                </span>
+                <h3 className="mt-4 text-lg font-bold text-white">We Remove You</h3>
+                <p className="mt-3 text-sm leading-relaxed text-gray-400">
+                  Upgrade to Premium and we automatically send opt-out requests to every broker — and keep you
+                  removed.
+                </p>
+              </li>
+            </ol>
+          </div>
+        </section>
+      </AnimateIn>
 
-      <section className="border-t border-white/5 bg-navy px-4 py-16">
+      <AnimateIn delay={80}>
+        <section className="border-t border-white/5 bg-navy px-4 py-16">
         <div className="mx-auto max-w-6xl text-center">
           <p className="text-sm font-medium text-gray-500">Trusted by students at</p>
           <div className="mt-6 flex flex-wrap justify-center gap-8 text-gray-500 md:gap-12">
@@ -221,8 +299,10 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      </AnimateIn>
 
-      <section className="px-4 py-20">
+      <AnimateIn delay={100}>
+        <section className="px-4 py-20">
         <div className="mx-auto max-w-5xl">
           <p className="text-center text-sm font-semibold uppercase tracking-widest text-brandyellow">Pricing</p>
           <h2 className="mt-3 text-center text-3xl font-bold text-navy md:text-4xl">Simple, transparent pricing</h2>
@@ -245,9 +325,18 @@ export default function LandingPage() {
               </ul>
               <Link
                 to={primaryCta}
-                className="mt-8 block rounded-lg border border-navy/20 py-3 text-center text-sm font-bold text-navy transition hover:bg-navy/5"
+                className="group mt-8 flex items-center justify-center gap-2 rounded-lg border border-navy/20 py-3 text-center text-sm font-bold text-navy transition hover:bg-navy/5 active:scale-[0.98]"
               >
-                Check What&apos;s Exposed →
+                Check What&apos;s Exposed
+                <svg
+                  className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
               </Link>
             </div>
             <div className="relative rounded-2xl border-2 border-brandyellow bg-navy p-8 shadow-xl">
@@ -284,8 +373,10 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      </AnimateIn>
 
-      <section className="bg-gray-50 px-4 py-20">
+      <AnimateIn delay={120}>
+        <section className="bg-gray-50 px-4 py-20">
         <div className="mx-auto max-w-6xl">
           <p className="text-center text-sm font-semibold uppercase tracking-widest text-brandyellow">
             Testimonials
@@ -295,7 +386,7 @@ export default function LandingPage() {
             {testimonials.map((t) => (
               <div
                 key={t.name}
-                className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm transition hover:shadow-md"
+                className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
               >
                 <div className="flex gap-1 text-brandyellow">
                   {[...Array(5)].map((_, i) => (
@@ -306,12 +397,20 @@ export default function LandingPage() {
                 </div>
                 <p className="mt-4 leading-relaxed text-brandgray">&ldquo;{t.quote}&rdquo;</p>
                 <div className="mt-6 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-navy text-xs font-bold text-brandyellow">
-                    {t.initials}
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brandyellow/20 text-caption font-bold text-brandyellow">
+                    {t.name[0]}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-navy">{t.name}</p>
-                    <p className="text-xs text-brandgray">{t.role}</p>
+                    <p className="text-caption font-semibold text-navy">{t.name}</p>
+                    <div className="flex items-center gap-1">
+                      <span className="text-micro text-gray-500">{t.role}</span>
+                      <svg className="h-3.5 w-3.5 text-info" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+                        <path
+                          fillRule="evenodd"
+                          d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        />
+                      </svg>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -319,8 +418,10 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      </AnimateIn>
 
-      <section className="bg-navy px-4 py-20">
+      <AnimateIn delay={140}>
+        <section className="bg-navy px-4 py-20">
         <div className="mx-auto max-w-6xl">
           <h2 className="text-center text-3xl font-bold text-white md:text-4xl">Students get 50% off. Always.</h2>
           <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-white/70">
@@ -354,15 +455,26 @@ export default function LandingPage() {
           <div className="mt-12 flex justify-center">
             <Link
               to="/scan"
-              className="inline-flex rounded-full bg-brandyellow px-8 py-4 text-sm font-bold text-navy shadow-lg shadow-brandyellow/25 transition hover:brightness-110"
+              className="group inline-flex items-center gap-2 rounded-full bg-brandyellow px-8 py-4 text-sm font-bold text-navy shadow-lg shadow-brandyellow/25 transition hover:brightness-110 active:scale-[0.98]"
             >
-              Get Student Pricing →
+              Get Student Pricing
+              <svg
+                className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
             </Link>
           </div>
         </div>
       </section>
+      </AnimateIn>
 
-      <section className="px-4 py-20">
+      <AnimateIn delay={160}>
+        <section className="px-4 py-20">
         <div className="mx-auto max-w-3xl">
           <p className="text-center text-sm font-semibold uppercase tracking-widest text-brandyellow">FAQ</p>
           <h2 className="mt-3 text-center text-3xl font-bold text-navy md:text-4xl">Frequently asked questions</h2>
@@ -401,8 +513,10 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      </AnimateIn>
 
-      <section className="bg-navy px-4 py-20">
+      <AnimateIn delay={180}>
+        <section className="bg-navy px-4 py-20">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold text-white md:text-4xl">Ready to see your exposure?</h2>
           <p className="mt-4 text-lg text-white/60">
@@ -410,12 +524,22 @@ export default function LandingPage() {
           </p>
           <Link
             to={primaryCta}
-            className="mt-8 inline-block rounded-lg bg-brandyellow px-10 py-4 text-sm font-bold text-navy shadow-lg shadow-brandyellow/20 transition hover:brightness-110"
+            className="group mt-8 inline-flex items-center gap-2 rounded-lg bg-brandyellow px-10 py-4 text-sm font-bold text-navy shadow-lg shadow-brandyellow/20 transition hover:brightness-110 active:scale-[0.98]"
           >
-            Check What&apos;s Exposed →
+            Check What&apos;s Exposed
+            <svg
+              className="h-4 w-4 transition-transform group-hover:translate-x-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
           </Link>
         </div>
       </section>
+      </AnimateIn>
     </div>
   );
 }
