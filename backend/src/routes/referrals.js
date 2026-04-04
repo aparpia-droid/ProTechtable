@@ -15,6 +15,17 @@ router.get("/", async (req, res, next) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
+    // Backfill referral code for existing users who don't have one
+    if (!user.referralCode) {
+      const { randomUUID } = require("crypto");
+      const code = randomUUID();
+      await prisma.user.update({
+        where: { id: req.user.id },
+        data: { referralCode: code },
+      });
+      user.referralCode = code;
+    }
+
     const referrals = await prisma.referral.findMany({
       where: { referrerId: req.user.id },
       select: {
