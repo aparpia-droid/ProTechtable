@@ -15,6 +15,7 @@ const alertsRoutes = require("./routes/alerts");
 const publicScanRoutes = require("./routes/publicScan");
 const referralRoutes = require("./routes/referrals");
 const campusReportRoutes = require("./routes/campusReport");
+const brokerDetectionRoutes = require("./routes/brokerDetection");
 const { requestLogger } = require("./middleware/requestLogger");
 const { errorHandler } = require("./middleware/errorHandler");
 const { generalLimiter } = require("./middleware/rateLimiter");
@@ -68,6 +69,7 @@ api.use("/broker-removals", brokerRemovalsRoutes);
 api.use("/alerts", alertsRoutes);
 api.use("/referrals", referralRoutes);
 api.use("/campus", campusReportRoutes);
+api.use("/broker-detection", brokerDetectionRoutes);
 api.use("/user", userRoutes);
 api.use("/user", userEmailsRoutes);
 

@@ -39,6 +39,8 @@ model User {
   referralCredits      Int             @default(0)
   referralsMade        Referral[]      @relation("referralsMade")
   referralsReceived    Referral[]      @relation("referralsReceived")
+  brokerDetections     BrokerDetection[]
+  footprintSnapshots   FootprintSnapshot[]
 
   @@index([stripeCustomerId])
   @@index([verificationToken])
@@ -109,7 +111,44 @@ model DataBroker {
   optOutEmail     String?
   optOutTemplate  String?
   estimatedDays   Int           @default(14)
+  searchUrl       String?
+  searchMethod    String        @default("none")
+  detectable      Boolean       @default(false)
+  resultSelector  String?
+  noResultText    String?
+  optOutFormUrl   String?
+  automatable     Boolean       @default(false)
   removals        BrokerRemoval[]
+  detections      BrokerDetection[]
+}
+
+model BrokerDetection {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brokerId   String
+  broker     DataBroker @relation(fields: [brokerId], references: [id])
+  detected   Boolean  @default(false)
+  profileUrl String?
+  dataFound  String?
+  scannedAt  DateTime @default(now())
+
+  @@unique([userId, brokerId, scannedAt])
+  @@index([userId])
+  @@index([userId, brokerId])
+}
+
+model FootprintSnapshot {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalBrokers  Int      @default(0)
+  detectedCount Int      @default(0)
+  removedCount  Int      @default(0)
+  exposureScore Int      @default(0)
+  snapshotAt    DateTime @default(now())
+
+  @@index([userId, snapshotAt])
 }
 
 model BrokerRemoval {

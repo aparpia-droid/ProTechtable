@@ -166,4 +166,16 @@ export function getCampusReport() {
   return api.get("/campus/my-campus");
 }
 
+export function runBrokerDetection(body) {
+  return api.post("/broker-detection/scan", body, { timeout: 120000 });
+}
+
+export function getBrokerDetectionResults() {
+  return api.get("/broker-detection/results");
+}
+
+export function getBrokerFootprint() {
+  return api.get("/broker-detection/footprint");
+}
+
 export { api };

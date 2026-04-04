@@ -380,6 +380,22 @@ export default function ScanPage() {
                   <li className="text-gray-400">No public breach matches were found for this email.</li>
                 )}
               </ul>
+              {(result.brokerEstimate ?? 0) > 0 && (
+                <div className="mt-4 rounded-xl border border-brandyellow/20 bg-brandyellow/5 p-4 text-center">
+                  <p className="text-sm font-medium text-brandyellow">
+                    Want to know exactly which brokers have your data?
+                  </p>
+                  <p className="mt-1 text-xs text-gray-400">
+                    Premium members get real broker detection — we actually scan broker sites for your name.
+                  </p>
+                  <Link
+                    to="/signup"
+                    className="mt-3 inline-block rounded-lg bg-brandyellow px-6 py-2 text-sm font-bold text-gray-900 hover:bg-yellow-300"
+                  >
+                    Get Real Detection →
+                  </Link>
+                </div>
+              )}
               <p className="mt-4 text-sm text-gray-500">A background check would reveal this data.</p>
             </div>
 

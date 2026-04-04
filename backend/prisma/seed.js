@@ -81,6 +81,64 @@ async function main() {
       },
     });
   }
+
+  const detectableBrokers = {
+    FastPeopleSearch: {
+      detectable: true,
+      searchMethod: "http",
+      searchUrl: "https://www.fastpeoplesearch.com/name/{firstname}-{lastname}_{state}",
+      resultSelector: "listing-name",
+      noResultText: "did not return any results",
+      automatable: false,
+    },
+    "That'sThem": {
+      detectable: true,
+      searchMethod: "http",
+      searchUrl: "https://thatsthem.com/name/{firstname}-{lastname}",
+      resultSelector: "ThatsThem-people-record",
+      noResultText: null,
+      automatable: false,
+    },
+    Nuwber: {
+      detectable: true,
+      searchMethod: "http",
+      searchUrl: "https://nuwber.com/search?name={fullname}",
+      resultSelector: "person-card",
+      noResultText: null,
+      automatable: false,
+    },
+    ClustrMaps: {
+      detectable: true,
+      searchMethod: "http",
+      searchUrl: "https://clustrmaps.com/persons/{firstname}-{lastname}",
+      resultSelector: "person-item",
+      noResultText: null,
+      automatable: false,
+    },
+    Cyberbackgroundchecks: {
+      detectable: true,
+      searchMethod: "http",
+      searchUrl: "https://www.cyberbackgroundchecks.com/people/{firstname}-{lastname}",
+      resultSelector: "record-list",
+      noResultText: null,
+      automatable: false,
+    },
+  };
+
+  for (const [brokerName, meta] of Object.entries(detectableBrokers)) {
+    await prisma.dataBroker.updateMany({
+      where: { name: brokerName },
+      data: {
+        detectable: meta.detectable,
+        searchMethod: meta.searchMethod,
+        searchUrl: meta.searchUrl,
+        resultSelector: meta.resultSelector,
+        noResultText: meta.noResultText,
+        automatable: meta.automatable,
+      },
+    });
+  }
+  process.stdout.write(`  Updated detection metadata for ${Object.keys(detectableBrokers).length} brokers\n`);
 }
 
 main()

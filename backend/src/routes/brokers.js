@@ -18,6 +18,7 @@ router.get("/", async (req, res, next) => {
       difficulty: b.difficulty,
       removalUrl: isPremium || index < 3 ? b.removalUrl : null,
       locked: !isPremium && index >= 3,
+      detectable: b.detectable,
     }));
 
     return res.json({ success: true, data });

@@ -60,6 +60,11 @@ export default function Navbar() {
         Removal
       </NavLink>
       {isAuthenticated && (
+        <NavLink to="/detection" className={linkClass} onClick={() => setMobileOpen(false)}>
+          Footprint
+        </NavLink>
+      )}
+      {isAuthenticated && (
         <Link
           to="/referrals"
           className="text-sm font-semibold text-brandyellow transition-all duration-300 hover:brightness-110"

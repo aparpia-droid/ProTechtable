@@ -25,6 +25,7 @@ import ScanPage from "./pages/ScanPage";
 import ReferralPage from "./pages/ReferralPage";
 import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
+import BrokerDetectionPage from "./pages/BrokerDetectionPage";
 
 function Layout({ children }) {
   return (
@@ -93,6 +94,14 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <BrokerRemovalPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/detection"
+                  element={
+                    <ProtectedRoute>
+                      <BrokerDetectionPage />
                     </ProtectedRoute>
                   }
                 />

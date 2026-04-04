@@ -9,6 +9,7 @@ import {
   getProfile,
   getCampusReport,
   toggleMonitoring,
+  getBrokerFootprint,
 } from "../lib/api";
 import { useToast } from "../context/ToastContext";
 import ScoreGauge from "../components/ScoreGauge";
@@ -128,17 +129,19 @@ export default function DashboardPage() {
   const [monitoringEnabled, setMonitoringEnabled] = useState(false);
   const [monitoringBusy, setMonitoringBusy] = useState(false);
   const [campusReport, setCampusReport] = useState(null);
+  const [footprint, setFootprint] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [a, s, br, al, p] = await Promise.all([
+        const [a, s, br, al, p, fp] = await Promise.all([
           getUserAssessments().catch(() => ({ data: { data: [] } })),
           getSubscription().catch(() => ({ data: { data: null } })),
           getBrokerRemovals().catch(() => ({ data: { stats: null } })),
           getAlerts().catch(() => ({ data: { unreadCount: 0 } })),
           getProfile().catch(() => ({ data: { user: null } })),
+          getBrokerFootprint().catch(() => ({ data: { data: null } })),
         ]);
         if (!cancelled) {
           setAssessments(a.data.data || []);
@@ -146,6 +149,7 @@ export default function DashboardPage() {
           setBrokerStats(br.data.stats || null);
           setUnreadAlerts(al.data.unreadCount ?? 0);
           setMonitoringEnabled(Boolean(p.data.user?.monitoringEnabled));
+          setFootprint(fp.data?.data ?? null);
           if (p.data.user?.isStudent) {
             try {
               const cr = await getCampusReport();
@@ -217,6 +221,77 @@ export default function DashboardPage() {
           >
             Run new assessment
           </Link>
+        </div>
+
+        <div className="mx-auto mt-10 max-w-6xl">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl transition-all duration-300 hover:border-white/20">
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
+              <svg
+                className="h-5 w-5 text-brandyellow"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M7.864 4.243A7.5 7.5 0 0119.5 9.5c0 2.038-.67 3.94-1.79 5.47M7.864 4.243A4.5 4.5 0 0012 2.25a4.5 4.5 0 014.5 4.5v.75m-9.06 1.122A8.25 8.25 0 0112 4.5m0 0v15m0-15a8.25 8.25 0 018.206 7.366M12 19.5v-15m0 15a8.25 8.25 0 01-8.206-7.366M12 19.5c-2.485 0-4.5-2.015-4.5-4.5s2.015-4.5 4.5-4.5m0 9c2.485 0 4.5-2.015 4.5-4.5s-2.015-4.5-4.5-4.5"
+                />
+              </svg>
+              Digital footprint
+            </h3>
+            {footprint?.reduction ? (
+              <div className="mt-4 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 text-center">
+                  <div>
+                    <p className="text-3xl font-bold text-red-400">{footprint.reduction.initialExposure}</p>
+                    <p className="text-xs text-white/45">First scan</p>
+                  </div>
+                  <span className="text-white/40">→</span>
+                  <div>
+                    <p className="text-3xl font-bold text-white">{footprint.reduction.currentExposure}</p>
+                    <p className="text-xs text-white/45">Current</p>
+                  </div>
+                  <span className="text-white/40">=</span>
+                  <div>
+                    <p className="text-3xl font-bold text-emerald-400">{footprint.reduction.removed}</p>
+                    <p className="text-xs text-white/45">Removed</p>
+                  </div>
+                </div>
+                <div className="h-2 w-full rounded-full bg-white/10">
+                  <div
+                    className="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-300 transition-all"
+                    style={{
+                      width: `${Math.min(100, Math.max(0, footprint.reduction.reductionPercent))}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-center text-sm text-white/45">
+                  {footprint.reduction.reductionPercent}% of your initially detected listings reduced
+                </p>
+                <Link
+                  to="/detection"
+                  className="block w-full rounded-xl bg-brandyellow py-2.5 text-center text-sm font-bold text-gray-900 hover:bg-yellow-300"
+                >
+                  Run new scan
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-4">
+                <p className="text-sm text-white/50">
+                  Scan broker sites to see where your personal data appears.
+                </p>
+                <Link
+                  to="/detection"
+                  className="mt-3 block w-full rounded-xl bg-brandyellow py-2.5 text-center text-sm font-bold text-gray-900 hover:bg-yellow-300"
+                >
+                  Scan broker sites
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mx-auto mt-10 grid max-w-6xl gap-6 md:grid-cols-3">
