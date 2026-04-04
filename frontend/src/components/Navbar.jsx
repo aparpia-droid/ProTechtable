@@ -55,12 +55,16 @@ export default function Navbar() {
 
   const navLinks = (
     <>
-      <NavLink to="/dashboard" className={linkClass} onClick={() => setMobileOpen(false)}>
-        Dashboard
-      </NavLink>
-      <NavLink to="/broker-removal" className={linkClass} onClick={() => setMobileOpen(false)}>
-        Removal
-      </NavLink>
+      {isAuthenticated && (
+        <NavLink to="/dashboard" className={linkClass} onClick={() => setMobileOpen(false)}>
+          Dashboard
+        </NavLink>
+      )}
+      {isAuthenticated && (
+        <NavLink to="/broker-removal" className={linkClass} onClick={() => setMobileOpen(false)}>
+          Removal
+        </NavLink>
+      )}
       {isAuthenticated && (
         <NavLink to="/detection" className={linkClass} onClick={() => setMobileOpen(false)}>
           Footprint
@@ -85,7 +89,7 @@ export default function Navbar() {
   );
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-navy/80 backdrop-blur-xl">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-navy/95 backdrop-blur-md">
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brandyellow/20 to-transparent" />
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
         <Link

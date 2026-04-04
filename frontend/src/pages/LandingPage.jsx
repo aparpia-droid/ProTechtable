@@ -2,20 +2,40 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
+// Lightweight AnimateIn using a single shared IntersectionObserver
+const sharedObserverCallbacks = new WeakMap();
+let sharedObserver = null;
+function getSharedObserver() {
+  if (sharedObserver) return sharedObserver;
+  sharedObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const cb = sharedObserverCallbacks.get(entry.target);
+          if (cb) cb();
+          sharedObserver.unobserve(entry.target);
+          sharedObserverCallbacks.delete(entry.target);
+        }
+      });
+    },
+    { threshold: 0.1 }
+  );
+  return sharedObserver;
+}
+
 function AnimateIn({ children, className = "", delay = 0 }) {
   const [ref, setRef] = useState(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (!ref) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setVisible(true);
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(ref);
-    return () => observer.disconnect();
+    const obs = getSharedObserver();
+    sharedObserverCallbacks.set(ref, () => setVisible(true));
+    obs.observe(ref);
+    return () => {
+      obs.unobserve(ref);
+      sharedObserverCallbacks.delete(ref);
+    };
   }, [ref]);
 
   return (

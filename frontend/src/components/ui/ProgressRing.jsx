@@ -10,9 +10,12 @@ export default function ProgressRing({ value = 0, size = 180, strokeWidth = 8, l
   const grade = value <= 20 ? "A" : value <= 40 ? "B" : value <= 60 ? "C" : value <= 80 ? "D" : "F";
 
   useEffect(() => {
+    if (value === 0) { setAnimatedValue(0); return; }
+    let cancelled = false;
     const duration = 1200;
     const start = performance.now();
     function tick(now) {
+      if (cancelled) return;
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
@@ -20,6 +23,7 @@ export default function ProgressRing({ value = 0, size = 180, strokeWidth = 8, l
       if (progress < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
+    return () => { cancelled = true; };
   }, [value]);
 
   const offset = circumference - (animatedValue / 100) * circumference;
