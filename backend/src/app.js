@@ -12,6 +12,9 @@ const userRoutes = require("./routes/user");
 const userEmailsRoutes = require("./routes/userEmails");
 const brokerRemovalsRoutes = require("./routes/brokerRemovals");
 const alertsRoutes = require("./routes/alerts");
+const publicScanRoutes = require("./routes/publicScan");
+const referralRoutes = require("./routes/referrals");
+const campusReportRoutes = require("./routes/campusReport");
 const { requestLogger } = require("./middleware/requestLogger");
 const { errorHandler } = require("./middleware/errorHandler");
 const { generalLimiter } = require("./middleware/rateLimiter");
@@ -54,6 +57,7 @@ app.get("/health", (req, res) => {
 const api = express.Router();
 api.use(generalLimiter);
 
+api.use("/scan", publicScanRoutes);
 api.use("/auth", authRoutes);
 api.use("/assessments", assessmentsRoutes);
 api.use("/remediation", planRouter);
@@ -62,6 +66,8 @@ api.use("/brokers", brokersRoutes);
 api.use("/payment", paymentRoutes);
 api.use("/broker-removals", brokerRemovalsRoutes);
 api.use("/alerts", alertsRoutes);
+api.use("/referrals", referralRoutes);
+api.use("/campus", campusReportRoutes);
 api.use("/user", userRoutes);
 api.use("/user", userEmailsRoutes);
 

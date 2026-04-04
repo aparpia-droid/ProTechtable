@@ -21,6 +21,10 @@ import PricingPage from "./pages/PricingPage";
 import AccountPage from "./pages/AccountPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsOfServicePage from "./pages/TermsOfServicePage";
+import ScanPage from "./pages/ScanPage";
+import ReferralPage from "./pages/ReferralPage";
+import BlogPage from "./pages/BlogPage";
+import BlogPostPage from "./pages/BlogPostPage";
 
 function Layout({ children }) {
   return (
@@ -49,6 +53,9 @@ export default function App() {
             <Layout>
               <Routes>
                 <Route path="/" element={<LandingPage />} />
+                <Route path="/scan" element={<ScanPage />} />
+                <Route path="/blog" element={<BlogPage />} />
+                <Route path="/blog/:slug" element={<BlogPostPage />} />
                 <Route path="/signup" element={<SignupPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -102,6 +109,14 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <AccountPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/referrals"
+                  element={
+                    <ProtectedRoute>
+                      <ReferralPage />
                     </ProtectedRoute>
                   }
                 />

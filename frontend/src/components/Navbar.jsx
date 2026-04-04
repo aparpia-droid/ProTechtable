@@ -59,8 +59,20 @@ export default function Navbar() {
       <NavLink to="/broker-removal" className={linkClass} onClick={() => setMobileOpen(false)}>
         Removal
       </NavLink>
+      {isAuthenticated && (
+        <Link
+          to="/referrals"
+          className="text-sm font-semibold text-brandyellow transition-all duration-300 hover:brightness-110"
+          onClick={() => setMobileOpen(false)}
+        >
+          Refer &amp; Earn
+        </Link>
+      )}
       <NavLink to="/pricing" className={linkClass} onClick={() => setMobileOpen(false)}>
         Pricing
+      </NavLink>
+      <NavLink to="/blog" className={linkClass} onClick={() => setMobileOpen(false)}>
+        Guides
       </NavLink>
     </>
   );

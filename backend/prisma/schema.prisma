@@ -33,6 +33,12 @@ model User {
   monitoringAlerts     MonitoringAlert[]
   monitoringEnabled    Boolean         @default(false)
   isStudent            Boolean         @default(false)
+  referralCode         String          @unique @default(uuid())
+  referredBy           String?
+  referralCount        Int             @default(0)
+  referralCredits      Int             @default(0)
+  referralsMade        Referral[]      @relation("referralsMade")
+  referralsReceived    Referral[]      @relation("referralsReceived")
 
   @@index([stripeCustomerId])
   @@index([verificationToken])
@@ -146,4 +152,32 @@ model MonitoringAlert {
 
   @@index([userId, read])
   @@index([userId, createdAt])
+}
+
+model Referral {
+  id            String   @id @default(uuid())
+  referrerId    String
+  referrer      User     @relation("referralsMade", fields: [referrerId], references: [id], onDelete: Cascade)
+  refereeId     String
+  referee       User     @relation("referralsReceived", fields: [refereeId], references: [id], onDelete: Cascade)
+  status        String   @default("signed_up")
+  creditAwarded Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@unique([referrerId, refereeId])
+  @@index([referrerId])
+  @@index([refereeId])
+}
+
+model CampusReport {
+  id             String   @id @default(uuid())
+  domain         String
+  universityName String
+  totalUsers     Int      @default(0)
+  breachedUsers  Int      @default(0)
+  avgRiskScore   Float    @default(0)
+  topBreaches    String?
+  generatedAt    DateTime @default(now())
+
+  @@index([domain])
 }

@@ -16,8 +16,9 @@ api.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401 && !isRedirecting) {
       const path = typeof window !== "undefined" ? window.location.pathname : "";
-      const publicPaths = ["/login", "/signup", "/verify-email", "/forgot-password", "/reset-password", "/"];
-      if (!publicPaths.includes(path)) {
+      const publicPaths = ["/login", "/signup", "/verify-email", "/forgot-password", "/reset-password", "/", "/scan"];
+      const isBlog = path.startsWith("/blog");
+      if (!publicPaths.includes(path) && !isBlog) {
         isRedirecting = true;
         setTimeout(() => {
           window.location.href = "/login";
@@ -151,6 +152,18 @@ export function markAllAlertsRead() {
 
 export function toggleMonitoring(enabled) {
   return api.post("/user/monitoring", { enabled });
+}
+
+export function publicScan(body) {
+  return api.post("/scan/check", body);
+}
+
+export function getReferralInfo() {
+  return api.get("/referrals");
+}
+
+export function getCampusReport() {
+  return api.get("/campus/my-campus");
 }
 
 export { api };

@@ -38,7 +38,7 @@ function safeUser(user) {
 
 router.post("/signup", authLimiter, signupValidators, validate, async (req, res, next) => {
   try {
-    const { email, password, firstName, lastName } = req.body;
+    const { email, password, firstName, lastName, ref } = req.body;
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       try {
@@ -58,7 +58,7 @@ router.post("/signup", authLimiter, signupValidators, validate, async (req, res,
     const now = new Date();
 
     const emailLower = email.toLowerCase();
-    await prisma.user.create({
+    const newUser = await prisma.user.create({
       data: {
         email,
         passwordHash,
@@ -71,6 +71,30 @@ router.post("/signup", authLimiter, signupValidators, validate, async (req, res,
         isStudent: emailLower.endsWith(".edu"),
       },
     });
+
+    if (ref && typeof ref === "string") {
+      const refTrim = ref.trim();
+      if (refTrim) {
+        try {
+          const referrer = await prisma.user.findUnique({ where: { referralCode: refTrim } });
+          if (referrer && referrer.id !== newUser.id) {
+            await prisma.referral.create({
+              data: { referrerId: referrer.id, refereeId: newUser.id },
+            });
+            await prisma.user.update({
+              where: { id: referrer.id },
+              data: { referralCount: { increment: 1 } },
+            });
+            await prisma.user.update({
+              where: { id: newUser.id },
+              data: { referredBy: refTrim },
+            });
+          }
+        } catch (refError) {
+          logger.warn("Referral tracking failed", { message: refError.message });
+        }
+      }
+    }
 
     try {
       await sendVerificationEmail(email, rawVerificationToken);

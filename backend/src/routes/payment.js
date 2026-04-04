@@ -57,6 +57,9 @@ router.post("/create-checkout", authMiddleware, checkoutValidators, validate, as
       metadata: { userId: user.id },
       subscription_data: {
         metadata: { userId: user.id },
+        ...(process.env.STRIPE_CHECKOUT_TRIAL_DAYS
+          ? { trial_period_days: Number(process.env.STRIPE_CHECKOUT_TRIAL_DAYS) || 7 }
+          : {}),
       },
     };
     if (user.stripeCustomerId) {

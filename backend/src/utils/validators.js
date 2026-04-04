@@ -42,6 +42,7 @@ const signupValidators = [
     .escape()
     .isLength({ max: 100 })
     .withMessage("Last name is too long"),
+  body("ref").optional().isString().trim(),
 ];
 
 const loginValidators = [

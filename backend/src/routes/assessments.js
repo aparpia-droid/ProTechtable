@@ -76,16 +76,6 @@ router.post("/create", assessmentLimiter, assessmentEmailValidators, validate, a
       });
     }
 
-    if (user.subscriptionTier !== "premium") {
-      const count = await prisma.assessment.count({ where: { userId } });
-      if (count >= 3) {
-        return res.status(403).json({
-          success: false,
-          message: "Free tier allows 3 assessments. Upgrade to Premium for unlimited scans.",
-        });
-      }
-    }
-
     const hibpKey = process.env.HIBP_API_KEY || "";
     const shodanKey = process.env.SHODAN_API_KEY || "";
     const hunterKey = process.env.HUNTER_IO_API_KEY || "";

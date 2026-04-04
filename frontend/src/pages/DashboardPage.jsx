@@ -7,6 +7,7 @@ import {
   getBrokerRemovals,
   getAlerts,
   getProfile,
+  getCampusReport,
   toggleMonitoring,
 } from "../lib/api";
 import { useToast } from "../context/ToastContext";
@@ -126,6 +127,7 @@ export default function DashboardPage() {
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const [monitoringEnabled, setMonitoringEnabled] = useState(false);
   const [monitoringBusy, setMonitoringBusy] = useState(false);
+  const [campusReport, setCampusReport] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -144,6 +146,16 @@ export default function DashboardPage() {
           setBrokerStats(br.data.stats || null);
           setUnreadAlerts(al.data.unreadCount ?? 0);
           setMonitoringEnabled(Boolean(p.data.user?.monitoringEnabled));
+          if (p.data.user?.isStudent) {
+            try {
+              const cr = await getCampusReport();
+              if (!cancelled && cr.data?.data) setCampusReport(cr.data.data);
+            } catch {
+              if (!cancelled) setCampusReport(null);
+            }
+          } else {
+            setCampusReport(null);
+          }
         }
       } catch {
         if (!cancelled) {
@@ -338,6 +350,44 @@ export default function DashboardPage() {
                 </Link>
               )}
             </div>
+          </div>
+        )}
+
+        {!loading && user?.isStudent && (
+          <div className="mx-auto mt-6 max-w-6xl rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+            <h3 className="mb-2 flex items-center gap-2 text-lg font-semibold text-white">
+              <svg className="h-5 w-5 text-brandyellow" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658.813A48.626 48.626 0 0 1 12 3.493a48.626 48.626 0 0 1 8.88 15.427 50.64 50.64 0 0 0-2.658-.813m0 0a50.64 50.64 0 0 1 2.658-.813 48.626 48.626 0 0 0 8.88-15.427m-11.538 0a48.626 48.626 0 0 0-8.88 15.427 50.64 50.64 0 0 1 2.658.813"
+                />
+              </svg>
+              Campus Security Report
+            </h3>
+            <p className="mb-4 text-sm text-gray-400">Anonymized security overview for your university</p>
+            {campusReport ? (
+              <div className="space-y-3">
+                <p className="font-medium text-white">{campusReport.university}</p>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Students scanned</span>
+                  <span className="text-white">{campusReport.totalStudents}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">With breach exposure</span>
+                  <span className="text-red-400">{campusReport.breachPercentage}%</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Avg risk score</span>
+                  <span className="text-white">{campusReport.avgRiskScore}/100</span>
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Share this report with your university IT department to help protect the campus.
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Run a scan to contribute to your campus report.</p>
+            )}
           </div>
         )}
       </section>

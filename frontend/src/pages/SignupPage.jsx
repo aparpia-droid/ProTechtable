@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { resendVerification, signup } from "../lib/api";
@@ -39,6 +39,8 @@ function ReqRow({ met, label }) {
 }
 
 export default function SignupPage() {
+  const [searchParams] = useSearchParams();
+  const refCode = searchParams.get("ref");
   const { register, handleSubmit, watch, formState } = useForm();
   const { showToast } = useToast();
   const pw = watch("password") || "";
@@ -59,6 +61,7 @@ export default function SignupPage() {
         password: values.password,
         firstName: values.firstName,
         lastName: values.lastName,
+        ...(refCode ? { ref: refCode } : {}),
       });
       setSignedUpEmail(values.email);
       setSignupSuccess(true);
@@ -132,6 +135,11 @@ export default function SignupPage() {
         <div className="rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur">
           <h1 className="text-center text-3xl font-bold text-white">Create your account</h1>
           <p className="mb-8 text-center text-white/60">Start protecting your digital identity</p>
+          {refCode && (
+            <div className="mb-6 rounded-xl border border-brandyellow/30 bg-brandyellow/10 px-4 py-3 text-center text-sm text-brandyellow">
+              You were referred! Both you and your friend will earn 1 month free Premium when you upgrade.
+            </div>
+          )}
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
             <div className="grid grid-cols-2 gap-4">
