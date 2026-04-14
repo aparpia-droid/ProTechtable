@@ -31,7 +31,8 @@ function safeUser(user) {
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
-    subscriptionTier: user.subscriptionTier,
+    subscriptionTier:
+      process.env.UNLOCK_ALL_FEATURES === "true" ? "premium" : user.subscriptionTier,
     isStudent: Boolean(user.isStudent),
   };
 }
@@ -130,6 +131,7 @@ router.post("/login", authLimiter, loginValidators, validate, async (req, res, n
     return res.json({
       success: true,
       user: safeUser(user),
+      token,
     });
   } catch (e) {
     next(e);

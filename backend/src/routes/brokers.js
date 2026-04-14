@@ -9,7 +9,8 @@ router.use(authMiddleware);
 router.get("/", async (req, res, next) => {
   try {
     const brokers = await prisma.dataBroker.findMany({ orderBy: { name: "asc" } });
-    const isPremium = req.user.subscriptionTier === "premium";
+    const isPremium =
+      process.env.UNLOCK_ALL_FEATURES === "true" || req.user.subscriptionTier === "premium";
 
     const data = brokers.map((b, index) => ({
       id: b.id,

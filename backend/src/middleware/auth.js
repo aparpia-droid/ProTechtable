@@ -4,7 +4,9 @@ const { logger } = require("../utils/logger");
 const { COOKIE_NAME } = require("../utils/jwt");
 
 /**
- * Verify JWT from httpOnly cookie only; load user from DB for subscription tier and session invalidation.
+ * Verify JWT from httpOnly cookie OR Authorization Bearer header.
+ * Bearer header is the fallback for browsers that block third-party cookies
+ * (cross-origin: Vercel frontend → Render backend).
  */
 async function authMiddleware(req, res, next) {
   try {
@@ -14,7 +16,14 @@ async function authMiddleware(req, res, next) {
       return res.status(500).json({ success: false, message: "Server configuration error" });
     }
 
-    const token = req.cookies && req.cookies[COOKIE_NAME];
+    // Try cookie first, fall back to Authorization header
+    let token = req.cookies && req.cookies[COOKIE_NAME];
+    if (!token) {
+      const authHeader = req.get("Authorization");
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.slice(7);
+      }
+    }
     if (!token) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
@@ -48,7 +57,10 @@ async function authMiddleware(req, res, next) {
     req.user = {
       id: user.id,
       email: user.email,
-      subscriptionTier: user.subscriptionTier,
+      subscriptionTier:
+        process.env.UNLOCK_ALL_FEATURES === "true"
+          ? "premium"
+          : user.subscriptionTier,
     };
     return next();
   } catch (e) {

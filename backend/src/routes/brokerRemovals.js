@@ -17,7 +17,8 @@ router.get("/", async (req, res, next) => {
     });
 
     const removalMap = new Map(removals.map((r) => [r.brokerId, r]));
-    const isPremium = req.user.subscriptionTier === "premium";
+    const isPremium =
+      process.env.UNLOCK_ALL_FEATURES === "true" || req.user.subscriptionTier === "premium";
 
     const data = brokers.map((b) => {
       const removal = removalMap.get(b.id);
@@ -62,7 +63,9 @@ router.get("/", async (req, res, next) => {
 // POST /api/broker-removals/:brokerId/request — initiate removal for a broker
 router.post("/:brokerId/request", async (req, res, next) => {
   try {
-    if (req.user.subscriptionTier !== "premium") {
+    const isPremiumRemoval =
+      process.env.UNLOCK_ALL_FEATURES === "true" || req.user.subscriptionTier === "premium";
+    if (!isPremiumRemoval) {
       return res.status(403).json({
         success: false,
         message: "Automated broker removal is a Premium feature. Upgrade to remove your data.",
@@ -176,7 +179,9 @@ router.post("/:brokerId/confirm", async (req, res, next) => {
 // POST /api/broker-removals/request-all — request removal from all brokers at once (premium)
 router.post("/request-all", async (req, res, next) => {
   try {
-    if (req.user.subscriptionTier !== "premium") {
+    const isPremiumBulk =
+      process.env.UNLOCK_ALL_FEATURES === "true" || req.user.subscriptionTier === "premium";
+    if (!isPremiumBulk) {
       return res.status(403).json({ success: false, message: "Premium feature" });
     }
 

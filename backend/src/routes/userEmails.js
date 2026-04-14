@@ -39,7 +39,9 @@ router.post("/emails", familyEmailValidators, validate, async (req, res, next) =
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-    if (user.subscriptionTier !== "premium") {
+    const isPremiumEmail =
+      process.env.UNLOCK_ALL_FEATURES === "true" || user.subscriptionTier === "premium";
+    if (!isPremiumEmail) {
       return res.status(403).json({
         success: false,
         message: "Family emails are available on Premium only.",

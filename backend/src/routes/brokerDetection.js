@@ -20,7 +20,9 @@ router.post("/scan", async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
-    if (user.subscriptionTier !== "premium") {
+    const effectiveTier =
+      process.env.UNLOCK_ALL_FEATURES === "true" ? "premium" : user.subscriptionTier;
+    if (effectiveTier !== "premium") {
       return res.status(403).json({
         success: false,
         message: "Broker detection requires Premium. Upgrade to scan broker sites.",

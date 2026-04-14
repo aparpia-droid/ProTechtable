@@ -42,6 +42,10 @@ router.get("/profile", async (req, res, next) => {
       success: true,
       user: {
         ...user,
+        subscriptionTier:
+          process.env.UNLOCK_ALL_FEATURES === "true"
+            ? "premium"
+            : user.subscriptionTier,
         phone: user.encryptedPhone ? decrypt(user.encryptedPhone) : null,
         dob: user.encryptedDob ? decrypt(user.encryptedDob) : null,
         encryptedPhone: undefined,
@@ -93,7 +97,10 @@ router.put("/profile", profileUpdateValidators, validate, async (req, res, next)
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        subscriptionTier: user.subscriptionTier,
+        subscriptionTier:
+          process.env.UNLOCK_ALL_FEATURES === "true"
+            ? "premium"
+            : user.subscriptionTier,
         emailVerified: user.emailVerified,
         phone: user.encryptedPhone ? decrypt(user.encryptedPhone) : null,
         dob: user.encryptedDob ? decrypt(user.encryptedDob) : null,
@@ -198,11 +205,16 @@ router.get("/subscription", async (req, res, next) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    if (user.subscriptionTier !== "premium" || !user.stripeCustomerId) {
+    const effectiveTier =
+      process.env.UNLOCK_ALL_FEATURES === "true"
+        ? "premium"
+        : user.subscriptionTier;
+
+    if (effectiveTier !== "premium" || !user.stripeCustomerId) {
       return res.json({
         success: true,
         data: {
-          tier: "free",
+          tier: effectiveTier,
           status: "active",
         },
       });
@@ -254,7 +266,9 @@ router.post("/monitoring", async (req, res, next) => {
       return res.status(403).json({ success: false, message: "Verify your email first" });
     }
 
-    if (enabled && user.subscriptionTier !== "premium") {
+    const effectiveMonitorTier =
+      process.env.UNLOCK_ALL_FEATURES === "true" ? "premium" : user.subscriptionTier;
+    if (enabled && effectiveMonitorTier !== "premium") {
       return res.status(403).json({
         success: false,
         message: "Continuous monitoring is a Premium feature.",

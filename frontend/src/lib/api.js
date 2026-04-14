@@ -11,10 +11,15 @@ const api = axios.create({
 
 let isRedirecting = false;
 
+// Allow callers to opt out of the 401 redirect (e.g. initial profile check)
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401 && !isRedirecting) {
+    if (
+      err.response?.status === 401 &&
+      !isRedirecting &&
+      !err.config?._skipAuthRedirect
+    ) {
       const path = typeof window !== "undefined" ? window.location.pathname : "";
       const publicPaths = ["/login", "/signup", "/verify-email", "/forgot-password", "/reset-password", "/", "/scan"];
       const isBlog = path.startsWith("/blog");
@@ -106,8 +111,8 @@ export function getSubscription() {
   return api.get("/user/subscription");
 }
 
-export function getProfile() {
-  return api.get("/user/profile");
+export function getProfile({ skipAuthRedirect = false } = {}) {
+  return api.get("/user/profile", { _skipAuthRedirect: skipAuthRedirect });
 }
 
 export function updateProfile(body) {
